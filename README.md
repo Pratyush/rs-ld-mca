@@ -26,6 +26,15 @@ capstones retain the exact list bound
 `B * (d + 1) * q^(4*d+4)` and the decoder bound `q^(C*(d+1))`, rather than
 absorbing these into the manuscript's coarser public exponents.
 
+The free-order assembly now keeps the floor and shell-ceiling ratios exact,
+counts the local contact region as a triangle, and counts the three global
+slack variables by their shared simplex of total width
+`floor(θ*d^3/4)`.  The resulting asymptotic rank
+coefficient is `θ^3/384`, versus `θ^3/110592` in the previous rectangular
+assembly—a factor `288` improvement.  This materially reduces the formal
+large-order threshold, although it does not by itself make that threshold
+practical at cryptographic block lengths.
+
 The only project-specific assumptions are the cardinality and algorithmic
 clauses of Kopparty's Theorem 4.3, both declared and documented in
 `RSListDecoding/Assumptions.lean`. The kernel dependency checks are in

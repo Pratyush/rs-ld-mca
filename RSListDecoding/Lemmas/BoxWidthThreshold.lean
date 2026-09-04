@@ -44,4 +44,35 @@ theorem exists_derivativeOrderThreshold_for_boxWidth
   norm_num
   exact hscaled
 
+/-- A sharper eventual floor hypothesis for the free-order theorem.  The
+linear loss `d/(d+1)` below pays exactly for the unit lost by the floor, so
+we ask that the unrounded width be at least `d+1` rather than merely two.
+The explicit threshold is still only linear in `1/θ`. -/
+theorem exists_derivativeOrderThreshold_for_sharpBoxWidth
+    {θ : ℝ} (hθ : 0 < θ) :
+    ∃ D : ℕ, ∀ d : ℕ, D ≤ d →
+      (d : ℝ) + 1 ≤ θ * ((d ^ 3 : ℕ) : ℝ) / 12 := by
+  let D := max 2 ⌈24 / θ⌉₊
+  refine ⟨D, ?_⟩
+  intro d hd
+  have hd2 : 2 ≤ d := (Nat.le_max_left 2 _).trans hd
+  have hceilD : ⌈24 / θ⌉₊ ≤ d :=
+    (Nat.le_max_right 2 _).trans hd
+  have hceil : 24 / θ ≤ (⌈24 / θ⌉₊ : ℝ) := Nat.le_ceil _
+  have hdreal : 24 / θ ≤ (d : ℝ) :=
+    hceil.trans (by exact_mod_cast hceilD)
+  have hlinear : 24 ≤ θ * (d : ℝ) := by
+    simpa [mul_comm] using (div_le_iff₀ hθ).mp hdreal
+  have hdreal2 : (2 : ℝ) ≤ d := by exact_mod_cast hd2
+  have hquad : 12 * ((d : ℝ) + 1) ≤ 24 * (d : ℝ) ^ 2 := by
+    nlinarith
+  have hscaled : 12 * ((d : ℝ) + 1) ≤ θ * (d : ℝ) ^ 3 := by
+    calc
+      12 * ((d : ℝ) + 1) ≤ 24 * (d : ℝ) ^ 2 := hquad
+      _ ≤ (θ * (d : ℝ)) * (d : ℝ) ^ 2 := by gcongr
+      _ = θ * (d : ℝ) ^ 3 := by ring
+  norm_num only [Nat.cast_pow]
+  rw [le_div_iff₀ (by norm_num : (0 : ℝ) < 12)]
+  simpa [mul_comm] using hscaled
+
 end RSListDecoding

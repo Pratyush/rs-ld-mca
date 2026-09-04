@@ -116,6 +116,209 @@ theorem exists_freeOrderRankThreshold
       gcongr
       nlinarith [mul_pos (sub_pos.mpr hθ₁) hε]
 
+/-- Near-lossless rank threshold.  The floor and shell-ceiling losses are
+kept as exact `d`-dependent ratios.  The displayed leading coefficient tends
+to `θ³/3456`, thirty-two times the previous `θ³/110592`; eventual existence
+already follows from the coarser comparison proved above. -/
+theorem exists_sharpFreeOrderRankThreshold
+    {ε θ : ℝ} (hε : 0 < ε) (hθ : 0 < θ) (hθ₁ : θ < 1) :
+    ∃ d₀ : ℕ, ∀ d : ℕ, d₀ ≤ d →
+      1 < (θ ^ 3 / 3456) * ((d : ℝ) / (d + 1)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        ((d : ℝ) / (scaledShellFactor θ d : ℝ)) := by
+  obtain ⟨d₀, hd₀⟩ := exists_freeOrderRankThreshold hε hθ hθ₁
+  refine ⟨max 2 d₀, ?_⟩
+  intro d hdmax
+  have hd2 : 2 ≤ d := (Nat.le_max_left 2 d₀).trans hdmax
+  have hdbase : d₀ ≤ d := (Nat.le_max_right 2 d₀).trans hdmax
+  have hd : 0 < d := by omega
+  have hdR : 0 < (d : ℝ) := by exact_mod_cast hd
+  have hshellPos : 0 < scaledShellFactor θ d := by
+    rw [scaledShellFactor, Nat.ceil_pos]
+    exact Real.rpow_pos_of_pos hdR _
+  have hshellPosR : 0 < (scaledShellFactor θ d : ℝ) := by
+    exact_mod_cast hshellPos
+  have hhalfWidth :
+      (1 : ℝ) / 2 ≤ (d : ℝ) / (d + 1) := by
+    have hden : 0 < (d : ℝ) + 1 := by positivity
+    rw [le_div_iff₀ hden]
+    have hdreal : (1 : ℝ) ≤ d := by exact_mod_cast hd
+    linarith
+  have hcubeWidth :
+      (1 : ℝ) / 8 ≤ ((d : ℝ) / (d + 1)) ^ 3 := by
+    have hnonneg : 0 ≤ (1 : ℝ) / 2 := by positivity
+    have hp := pow_le_pow_left₀ hnonneg hhalfWidth 3
+    norm_num at hp ⊢
+    exact hp
+  have hshellUpper :
+      (scaledShellFactor θ d : ℝ) ≤
+        2 * (d : ℝ) ^ shellExponent θ := by
+    exact scaledShellFactor_cast_le_two_rpow hθ hθ₁ (by omega)
+  have hshellRatio :
+      (1 / 2 : ℝ) * (d : ℝ) ^ rankSavingExponent θ ≤
+        (d : ℝ) / (scaledShellFactor θ d : ℝ) := by
+    rw [le_div_iff₀ hshellPosR]
+    calc
+      ((1 / 2 : ℝ) * (d : ℝ) ^ rankSavingExponent θ) *
+          (scaledShellFactor θ d : ℝ) ≤
+        ((1 / 2 : ℝ) * (d : ℝ) ^ rankSavingExponent θ) *
+          (2 * (d : ℝ) ^ shellExponent θ) := by gcongr
+      _ = (d : ℝ) ^
+          (shellExponent θ + rankSavingExponent θ) := by
+            rw [Real.rpow_add hdR]
+            ring
+      _ = (d : ℝ) := by
+        rw [shellExponent_add_rankSavingExponent hθ, Real.rpow_one]
+  have hcoarse := hd₀ d hdbase
+  have hnonneg :
+      0 ≤ (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (d : ℝ) ^ rankSavingExponent θ := by positivity
+  calc
+    1 < (θ ^ 3 / 110592) *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (d : ℝ) ^ rankSavingExponent θ := hcoarse
+    _ ≤ (θ ^ 3 / 55296) *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (d : ℝ) ^ rankSavingExponent θ := by
+      gcongr
+      norm_num
+    _ = (θ ^ 3 / 3456) * (1 / 8 : ℝ) *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        ((1 / 2 : ℝ) * (d : ℝ) ^ rankSavingExponent θ) := by ring
+    _ ≤ (θ ^ 3 / 3456) * ((d : ℝ) / (d + 1)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        ((d : ℝ) / (scaledShellFactor θ d : ℝ)) := by
+      gcongr
+
+/-- Fully sharp threshold, retaining the exact triangular contact count.
+The leading coefficient tends to `θ³/1728`, sixty-four times the original
+free-order coefficient. -/
+theorem exists_triangleFreeOrderRankThreshold
+    {ε θ : ℝ} (hε : 0 < ε) (hθ : 0 < θ) (hθ₁ : θ < 1) :
+    ∃ d₀ : ℕ, ∀ d : ℕ, d₀ ≤ d →
+      1 < (θ ^ 3 / 1728) * ((d : ℝ) / (d + 1)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := by
+  obtain ⟨d₀, hd₀⟩ := exists_sharpFreeOrderRankThreshold hε hθ hθ₁
+  refine ⟨max 2 d₀, ?_⟩
+  intro d hdmax
+  have hd2 : 2 ≤ d := (Nat.le_max_left 2 d₀).trans hdmax
+  have hdbase : d₀ ≤ d := (Nat.le_max_right 2 d₀).trans hdmax
+  have hd : 0 < d := by omega
+  have hshell : 0 < (scaledShellFactor θ d : ℝ) := by
+    exact_mod_cast scaledShellFactor_pos hd
+  have hden : 0 < ((d : ℝ) ^ 2 + 1) := by positivity
+  have hkernel :
+      (d : ℝ) / (scaledShellFactor θ d : ℝ) ≤
+        2 * (d : ℝ) ^ 3 /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ)) := by
+    rw [div_le_iff₀ hshell]
+    have hd1 : (1 : ℝ) ≤ d := by exact_mod_cast (show 1 ≤ d by omega)
+    field_simp
+    nlinarith [sq_nonneg ((d : ℝ) - 1)]
+  have hcoarse := hd₀ d hdbase
+  let common := (θ ^ 3 / 3456) * ((d : ℝ) / (d + 1)) ^ 3 *
+    (((d : ℝ) / (d + 2)) * ((1 - θ) * ε))
+  have hcommon : 0 ≤ common := by
+    dsimp [common]
+    positivity
+  calc
+    1 < common * ((d : ℝ) / (scaledShellFactor θ d : ℝ)) := by
+      simpa [common, mul_assoc] using hcoarse
+    _ ≤ common *
+        (2 * (d : ℝ) ^ 3 /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) :=
+      mul_le_mul_of_nonneg_left hkernel hcommon
+    _ = (θ ^ 3 / 1728) * ((d : ℝ) / (d + 1)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := by ring
+
+/-- Threshold after exploiting the global slack simplex. -/
+theorem exists_simplexFreeOrderRankThreshold
+    {ε θ : ℝ} (hε : 0 < ε) (hθ : 0 < θ) (hθ₁ : θ < 1) :
+    ∃ d₀ : ℕ, ∀ d : ℕ, d₀ ≤ d →
+      1 < (θ ^ 3 / 384) * ((d : ℝ) / (d + 1)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := by
+  obtain ⟨d₀, hd₀⟩ := exists_triangleFreeOrderRankThreshold hε hθ hθ₁
+  refine ⟨d₀, ?_⟩
+  intro d hd
+  have htriangle := hd₀ d hd
+  calc
+    1 < (θ ^ 3 / 1728) * ((d : ℝ) / (d + 1)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := htriangle
+    _ ≤ (θ ^ 3 / 384) * ((d : ℝ) / (d + 1)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := by
+      gcongr
+      norm_num
+
+/-- Exact-floor simplex threshold.  Unlike the preceding smooth sufficient
+condition, this is the concrete rank test consumed by the capstone. -/
+theorem exists_exactSimplexFreeOrderRankThreshold
+    {ε θ : ℝ} (hε : 0 < ε) (hθ : 0 < θ) (hθ₁ : θ < 1) :
+    ∃ d₀ : ℕ, ∀ d : ℕ, d₀ ≤ d →
+      1 < (1 / 6) *
+        ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := by
+  obtain ⟨dRank, hRank⟩ :=
+    exists_simplexFreeOrderRankThreshold hε hθ hθ₁
+  obtain ⟨dBox, hBox⟩ :=
+    exists_derivativeOrderThreshold_for_sharpBoxWidth hθ
+  refine ⟨max dRank dBox, ?_⟩
+  intro d hdmax
+  have hdRank : dRank ≤ d := (Nat.le_max_left _ _).trans hdmax
+  have hdBox : dBox ≤ d := (Nat.le_max_right _ _).trans hdmax
+  have hsmooth := hRank d hdRank
+  have hbox : (d : ℝ) + 1 ≤
+      θ * (multiplicityAt d : ℝ) / 12 := by
+    simpa [multiplicityAt] using hBox d hdBox
+  have hwidth := sharp_interpolationBoxWidthAtTarget_le_cast hbox
+  have hd : 0 < d := by
+    by_contra hd0
+    have : d = 0 := Nat.eq_zero_of_not_pos hd0
+    subst d
+    norm_num [interpolationBoxWidthAt, multiplicityAt,
+      scaledShellFactor] at hsmooth
+  have hd3 : 0 < ((d ^ 3 : ℕ) : ℝ) := by positivity
+  have hthreeBox : 3 * interpolationBoxWidthAt θ d ≤
+      interpolationSimplexWidthAt θ d :=
+    three_interpolationBoxWidthAt_le_simplexWidthAt hθ.le
+  have hratio :
+      3 * ((θ / 12) * ((d : ℝ) / (d + 1))) ≤
+        (interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ) := by
+    rw [le_div_iff₀ hd3]
+    calc
+      3 * ((θ / 12) * ((d : ℝ) / (d + 1))) * (d ^ 3 : ℕ) =
+          3 * ((θ / 12) * ((d : ℝ) / (d + 1)) *
+            (multiplicityAt d : ℝ)) := by simp [multiplicityAt]; ring
+      _ ≤ 3 * (interpolationBoxWidthAt θ d : ℝ) := by gcongr
+      _ ≤ (interpolationSimplexWidthAt θ d : ℝ) := by exact_mod_cast hthreeBox
+  calc
+    1 < (θ ^ 3 / 384) * ((d : ℝ) / (d + 1)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := hsmooth
+    _ = (1 / 6) *
+        (3 * ((θ / 12) * ((d : ℝ) / (d + 1)))) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := by ring
+    _ ≤ (1 / 6) *
+        ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := by
+      gcongr
+
 /-- The same threshold supplies the exact comparison consumed by the
 discrete dimension theorem, uniformly in the block length. -/
 theorem freeOrder_rank_comparison
@@ -138,6 +341,113 @@ theorem freeOrder_rank_comparison
     _ ≤ (θ ^ 3 / 110592) *
         (((ambientDimension ε θ n - 1 : ℕ) : ℝ) / (n : ℝ)) *
         (d : ℝ) ^ rankSavingExponent θ := by
+      gcongr
+
+/-- Exact-shell analogue of `freeOrder_rank_comparison`. -/
+theorem sharpFreeOrder_rank_comparison
+    {ε θ : ℝ} {d n : ℕ}
+    (hθ : 0 < θ) (hd : 0 < d)
+    (hdK : d < ambientDimension ε θ n)
+    (hlarge :
+      1 < (θ ^ 3 / 3456) * ((d : ℝ) / (d + 1)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        ((d : ℝ) / (scaledShellFactor θ d : ℝ))) :
+    1 < (θ ^ 3 / 3456) * ((d : ℝ) / (d + 1)) ^ 3 *
+      (((ambientDimension ε θ n - 1 : ℕ) : ℝ) / (n : ℝ)) *
+      ((d : ℝ) / (scaledShellFactor θ d : ℝ)) := by
+  have hratio :=
+    order_ratio_mul_rate_le_ambientDimension_sub_one_div hd hdK
+  calc
+    1 < (θ ^ 3 / 3456) * ((d : ℝ) / (d + 1)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        ((d : ℝ) / (scaledShellFactor θ d : ℝ)) := hlarge
+    _ ≤ (θ ^ 3 / 3456) * ((d : ℝ) / (d + 1)) ^ 3 *
+        (((ambientDimension ε θ n - 1 : ℕ) : ℝ) / (n : ℝ)) *
+        ((d : ℝ) / (scaledShellFactor θ d : ℝ)) := by
+      gcongr
+
+/-- Exact-triangle analogue of `freeOrder_rank_comparison`. -/
+theorem triangleFreeOrder_rank_comparison
+    {ε θ : ℝ} {d n : ℕ}
+    (hθ : 0 < θ) (hd : 0 < d)
+    (hdK : d < ambientDimension ε θ n)
+    (hlarge :
+      1 < (θ ^ 3 / 1728) * ((d : ℝ) / (d + 1)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ)))) :
+    1 < (θ ^ 3 / 1728) * ((d : ℝ) / (d + 1)) ^ 3 *
+      (((ambientDimension ε θ n - 1 : ℕ) : ℝ) / (n : ℝ)) *
+      (((d : ℝ) ^ 3) /
+        (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := by
+  have hratio :=
+    order_ratio_mul_rate_le_ambientDimension_sub_one_div hd hdK
+  calc
+    1 < (θ ^ 3 / 1728) * ((d : ℝ) / (d + 1)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := hlarge
+    _ ≤ (θ ^ 3 / 1728) * ((d : ℝ) / (d + 1)) ^ 3 *
+        (((ambientDimension ε θ n - 1 : ℕ) : ℝ) / (n : ℝ)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := by
+      gcongr
+
+/-- Global-simplex analogue of `freeOrder_rank_comparison`. -/
+theorem simplexFreeOrder_rank_comparison
+    {ε θ : ℝ} {d n : ℕ}
+    (hθ : 0 < θ) (hd : 0 < d)
+    (hdK : d < ambientDimension ε θ n)
+    (hlarge :
+      1 < (θ ^ 3 / 384) * ((d : ℝ) / (d + 1)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ)))) :
+    1 < (θ ^ 3 / 384) * ((d : ℝ) / (d + 1)) ^ 3 *
+      (((ambientDimension ε θ n - 1 : ℕ) : ℝ) / (n : ℝ)) *
+      (((d : ℝ) ^ 3) /
+        (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := by
+  have hratio :=
+    order_ratio_mul_rate_le_ambientDimension_sub_one_div hd hdK
+  calc
+    1 < (θ ^ 3 / 384) * ((d : ℝ) / (d + 1)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := hlarge
+    _ ≤ (θ ^ 3 / 384) * ((d : ℝ) / (d + 1)) ^ 3 *
+        (((ambientDimension ε θ n - 1 : ℕ) : ℝ) / (n : ℝ)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := by
+      gcongr
+
+/-- Exact-floor global-simplex rank comparison. -/
+theorem exactSimplexFreeOrder_rank_comparison
+    {ε θ : ℝ} {d n : ℕ}
+    (hd : 0 < d) (hdK : d < ambientDimension ε θ n)
+    (hlarge :
+      1 < (1 / 6) *
+        ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ)))) :
+    1 < (1 / 6) *
+      ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
+      (((ambientDimension ε θ n - 1 : ℕ) : ℝ) / (n : ℝ)) *
+      (((d : ℝ) ^ 3) /
+        (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := by
+  have hratio :=
+    order_ratio_mul_rate_le_ambientDimension_sub_one_div hd hdK
+  calc
+    1 < (1 / 6) *
+        ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := hlarge
+    _ ≤ (1 / 6) *
+        ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
+        (((ambientDimension ε θ n - 1 : ℕ) : ℝ) / (n : ℝ)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := by
       gcongr
 
 end RSListDecoding

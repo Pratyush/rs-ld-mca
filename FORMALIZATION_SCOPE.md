@@ -119,18 +119,35 @@ are `AllRateCombinatorialMainStatement` and
 `AllRateAlgorithmicMainStatement`; the trusted-surface theorems are
 `all_rate_combinatorial_main` and `all_rate_algorithmic_main`.
 
-The new argument changes only the final parameter assembly.  It widens the
-free-order rectangular interpolation family from
-`floor(θm/16)` to `floor(θm/12)`; the weighted budget still closes because
-`(1-θ)(1+θ)<1`.  The repaired
-shell estimate already holds eventually in an independent `d`, and
+The new argument changes only the final parameter assembly.  It sets
+`J=floor(θm/4)` and counts the three free exponents by the shared simplex
+`s+b₀+b₁<J`, rather than by an `H³` box with
+`H=floor(θm/12)`.  Its exact cardinality is
+`choose(J+2,3)`, asymptotic to `J³/6`; rounding `J` only once also dominates
+the earlier choice `3H`.  The weighted and ordinary-degree
+budgets still close because `(1-θ)(1+θ)<1`.  On the local side, the
+contact-order constraint is counted by its exact triangular region, giving
+the factor `d⁸+d⁶` rather than the previous rectangular `4d⁸`.  The repaired
+shell estimate already holds eventually in an independent `d`.  Writing
+`R_d=ceil(d^((5-θ)/(5+θ)))`, the capstone consumes the exact finite-order
+rank condition
 
 \[
-\frac{\theta^3}{110592}\frac{K-1}{n}
-d^{2\theta/(5+\theta)}>1
+1<\frac16\left(\frac{J}{d^3}\right)^3
+\frac{d}{d+2}(1-\theta)\varepsilon
+\frac{d^3}{(d^2+1)R_d}.
 \]
 
-also holds eventually because the exact rounding estimate
+The following smooth condition is sufficient and proves eventual existence:
+
+\[
+\frac{\theta^3}{384}
+\left(\frac d{d+1}\right)^3
+\frac{K-1}{n}
+\frac{d^3}{(d^2+1)R_d}>1.
+\]
+
+It holds eventually because the exact rounding estimate
 
 \[
 \frac{K-1}{n}\ge
@@ -138,9 +155,11 @@ also holds eventually because the exact rounding estimate
 \]
 
 holds whenever `d < K`, and the exponent `2θ/(5+θ)` is positive.  The
-factor `d/(d+2)` tends to one, so the rounding loss vanishes with the chosen
-derivative order.  All interpolation,
-contact, multiplicity-root, root-counting, and filtering lemmas are reused.
+factor `d/(d+2)` tends to one, and every other displayed correction ratio
+also tends to one.  Thus the leading coefficient is `θ³/384`, a factor
+`288` larger than the preceding `θ³/110592` assembly.  All interpolation,
+multiplicity-root, root-counting, and filtering lemmas are reused; only the
+local and global monomial counts are sharpened.
 
 Equivalently, for a target rate `R` and agreement `ε > R`, choose any
 `θ` with `R ≤ (1-θ)ε`.  The theorem then decodes a rate-`R` code from an
@@ -249,8 +268,9 @@ The exact Lean proposition is
 - A fully explicit closed formula for `ε₀(θ)` until all hidden threshold
   conditions in the draft have been made explicit.
 - Practical bounds for the new threshold `d₀(ε,θ)`; the shell component is
-  presently existential and the checked rank comparison intentionally keeps
-  coarse discrete losses.
+  presently existential.  The checked rank comparison now retains the exact
+  floor, ceiling, triangular-contact, and simplex-volume factors, so the
+  remaining obstacle is no longer a deliberately coarse geometric constant.
 
 ## Manuscript normalization implemented by this scope
 

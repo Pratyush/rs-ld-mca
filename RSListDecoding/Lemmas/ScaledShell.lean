@@ -421,6 +421,14 @@ theorem scaledShellFactor_cast_le_two_rpow
     exact Nat.ceil_lt_add_one hnonneg
   linarith
 
+/-- The rounded shell factor is positive at every positive derivative
+order. -/
+theorem scaledShellFactor_pos
+    {θ : ℝ} {d : ℕ} (hd : 0 < d) :
+    0 < scaledShellFactor θ d := by
+  rw [scaledShellFactor, Nat.ceil_pos]
+  exact Real.rpow_pos_of_pos (by exact_mod_cast hd) _
+
 set_option maxHeartbeats 500000 in
 /-- For fixed `0 < θ < 1`, the two explicit hypotheses of
 `scaledExponentCount_shell_le_mul_goodScaledExponentCount` hold for all

@@ -64,11 +64,13 @@ noncomputable def higherJetDegreeBudgetAt (θ : ℝ) (d : ℕ) : ℕ :=
 noncomputable def higherJetDegreeBudget (ε θ : ℝ) : ℕ :=
   ⌊(1 + 3 * θ / 4) * (multiplicity ε θ : ℝ)⌋₊
 
-/-- Width of the free-order rectangular family.  The value `floor(θm/12)`
-is the largest uniform linear choice certified by the coarse weighted-budget
-estimate `C + 3H ≤ (1+θ)m`. -/
+/-- Width of each coordinate in the free-order rectangular family. -/
 noncomputable def interpolationBoxWidthAt (θ : ℝ) (d : ℕ) : ℕ :=
   ⌊θ * (multiplicityAt d : ℝ) / 12⌋₊
+
+/-- Total slack of the optimized global simplex. -/
+noncomputable def interpolationSimplexWidthAt (θ : ℝ) (d : ℕ) : ℕ :=
+  ⌊θ * (multiplicityAt d : ℝ) / 4⌋₊
 
 /-- Original manuscript width, retained by the original capstones. -/
 noncomputable def interpolationBoxWidth (ε θ : ℝ) : ℕ :=

@@ -1,4 +1,6 @@
 import RSListDecoding.Defs.InterpolationSpace
+import Mathlib.Data.Fin.Tuple.NatAntidiagonal
+import Mathlib.Data.Nat.Choose.Sum
 import Mathlib.LinearAlgebra.Dimension.StrongRankCondition
 import Mathlib.LinearAlgebra.FreeModule.StrongRankCondition
 
@@ -7,19 +9,79 @@ import Mathlib.LinearAlgebra.FreeModule.StrongRankCondition
 
 The support-first definition of `interpolationSpace` comes with a canonical
 monomial basis.  This file first identifies its rank with the number of
-eligible exponent vectors.  It then gives a deliberately elementary lower
-bound: for each good higher-jet exponent we place a rectangular family in
-the four remaining directions.  Splitting the `X` exponent into a residue
-modulo `K - 1` and a block coordinate produces the factor
-`(K - 1) * H ^ 3`.
+eligible exponent vectors.  It gives both the original rectangular lower
+bound and a sharper simplex bound.  Splitting the `X` exponent into a residue
+modulo `K - 1` and a block coordinate, then sharing the remaining slack among
+that block coordinate and the `Y₀,Y₁` exponents, produces the exact factor
+`(K - 1) * choose (J+2) 3`.
 
-All rounding loss is exposed in the two natural-number slack hypotheses
-`C + 2 * H ≤ B` and `(K - 1) * (C + 3 * H) ≤ m * A`.
+All rounding loss remains exposed in natural-number slack hypotheses.
 -/
 
 noncomputable section
 
 namespace RSListDecoding
+
+/-- Three-dimensional discrete simplex of total slack below `J`. -/
+abbrev GlobalSlackSimplex (J : ℕ) :=
+  Σ z : Fin J, ↥(Finset.Nat.antidiagonalTuple 3 z.val)
+
+theorem card_antidiagonalTuple_three (z : ℕ) :
+    (Finset.Nat.antidiagonalTuple 3 z).card = (z + 2).choose 2 := by
+  induction z with
+  | zero => simp [Finset.Nat.antidiagonalTuple_zero_right]
+  | succ z ih =>
+      change (List.Nat.antidiagonalTuple 3 (z + 1)).length =
+        (z + 1 + 2).choose 2
+      rw [List.Nat.antidiagonalTuple, List.Nat.antidiagonal_succ]
+      simp only [List.flatMap_cons, List.length_append, List.length_map]
+      simp_rw [List.Nat.antidiagonalTuple_two, List.length_map,
+        List.Nat.length_antidiagonal]
+      rw [Nat.choose_succ_succ]
+      rw [List.length_flatMap]
+      simp only [List.map_map, List.length_map]
+      change (List.Nat.antidiagonalTuple 3 z).length =
+        (z + 2).choose 2 at ih
+      rw [List.Nat.antidiagonalTuple.eq_def, List.length_flatMap] at ih
+      simp_rw [List.Nat.antidiagonalTuple_two, List.length_map,
+        List.Nat.length_antidiagonal] at ih
+      simp only [List.Nat.length_antidiagonal]
+      have hmap :
+          List.map ((fun a : ℕ × ℕ => a.2 + 1) ∘ Prod.map Nat.succ id)
+              (List.Nat.antidiagonal z) =
+            List.map (fun a : ℕ × ℕ => a.2 + 1)
+              (List.Nat.antidiagonal z) := by
+        apply List.map_congr_left
+        intro a ha
+        rcases a with ⟨a, b⟩
+        rfl
+      rw [hmap]
+      rw [ih]
+      simp
+
+theorem card_globalSlackSimplex (J : ℕ) :
+    Fintype.card (GlobalSlackSimplex J) = (J + 2).choose 3 := by
+  rw [Fintype.card_sigma]
+  simp_rw [Fintype.card_coe, card_antidiagonalTuple_three]
+  rw [Fin.sum_univ_eq_sum_range (fun z => (z + 2).choose 2)]
+  cases J with
+  | zero => simp
+  | succ J => simpa using Nat.sum_range_add_choose J 2
+
+/-- The tuple carried by a simplex point determines the point itself. -/
+theorem globalSlackSimplex_tuple_injective (J : ℕ) :
+    Function.Injective (fun a : GlobalSlackSimplex J => a.2.1) := by
+  rintro ⟨z, a⟩ ⟨z', a'⟩ haa'
+  change a.1 = a'.1 at haa'
+  have hsum := Finset.Nat.mem_antidiagonalTuple.mp a.2
+  have hsum' := Finset.Nat.mem_antidiagonalTuple.mp a'.2
+  have hzz' : z = z' := by
+    apply Fin.ext
+    rw [← hsum, ← hsum', haa']
+  subst z'
+  have ha : a = a' := Subtype.ext haa'
+  subst a'
+  rfl
 
 /-- The index of `Y₀` among the jet variables. -/
 def jetZeroIndex (d : ℕ) : Fin (d + 1) := ⟨0, by omega⟩
@@ -220,6 +282,66 @@ theorem globalRectangleExponent_eligible {d m A K B W C H : ℕ}
   · simpa using hcWeight
   · simpa using hcDegree
 
+/-- Simplex version of the global eligibility lemma.  Only the total slack
+`s+b₀+b₁` is bounded, so one spends `J` once instead of bounding the three
+coordinates independently. -/
+theorem globalSimplexExponent_eligible {d m A K B W C J : ℕ}
+    (hd : 1 ≤ d) (hJ : J ≤ m) (hdegree : C + J ≤ B)
+    (hweighted : (K - 1) * (C + J) ≤ m * A)
+    (c : ↥(goodHigherExponents d W C)) (r : Fin (K - 1))
+    (a : GlobalSlackSimplex J) :
+    GlobalEligibleExponent d m A K B W C
+      (globalRectangleExponent hd K c.1 r
+        (a.2.1 0) (a.2.1 1) (a.2.1 2)) := by
+  have hc := mem_goodHigherExponents.mp c.2
+  have hcWeight : higherJetWeight c.1 ≤ W := hc.1
+  have hcDegree : higherJetDegree c.1 ≤ C := hc.2
+  have hsum := Finset.Nat.mem_antidiagonalTuple.mp a.2.2
+  rw [Fin.sum_univ_three] at hsum
+  have hslack : a.2.1 0 + a.2.1 1 + a.2.1 2 < J := by
+    rw [hsum]
+    exact a.1.isLt
+  have hslt : a.2.1 0 < m := lt_of_lt_of_le (by omega) hJ
+  have htotal_lt :
+      a.2.1 1 + a.2.1 2 + higherJetDegree c.1 < C + J := by
+    omega
+  have hblock_lt :
+      a.2.1 0 + a.2.1 1 + a.2.1 2 + higherJetDegree c.1 <
+        C + J := by
+    omega
+  have hweighted_lt :
+      r.val + (K - 1) *
+          (a.2.1 0 + a.2.1 1 + a.2.1 2 + higherJetDegree c.1) <
+        (K - 1) * (C + J) := by
+    calc
+      r.val + (K - 1) *
+          (a.2.1 0 + a.2.1 1 + a.2.1 2 + higherJetDegree c.1) <
+          (K - 1) + (K - 1) *
+            (a.2.1 0 + a.2.1 1 + a.2.1 2 +
+              higherJetDegree c.1) := Nat.add_lt_add_right r.isLt _
+      _ = (K - 1) *
+          (a.2.1 0 + a.2.1 1 + a.2.1 2 +
+            higherJetDegree c.1 + 1) := by ring
+      _ ≤ (K - 1) * (C + J) :=
+        Nat.mul_le_mul_left _ (Nat.succ_le_of_lt hblock_lt)
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  · simp
+    omega
+  · simpa using (Nat.le_trans (Nat.le_of_lt htotal_lt) hdegree)
+  · simp only [globalRectangleExponent_x,
+      totalJetDegree_globalRectangleExponent]
+    calc
+      r.val + (K - 1) * a.2.1 0 +
+          (K - 1) *
+            (a.2.1 1 + a.2.1 2 + higherJetDegree c.1) =
+          r.val + (K - 1) *
+            (a.2.1 0 + a.2.1 1 + a.2.1 2 +
+              higherJetDegree c.1) := by ring
+      _ < (K - 1) * (C + J) := hweighted_lt
+      _ ≤ m * A := hweighted
+  · simpa using hcWeight
+  · simpa using hcDegree
+
 /-- The finite rectangular index family used in the lower bound. -/
 abbrev GlobalRectangleIndex (d W C K H : ℕ) :=
   ↥(goodHigherExponents d W C) ×
@@ -280,11 +402,85 @@ theorem globalRectangleEmbedding_injective {d m A K B W C H : ℕ}
   subst b₁'
   rfl
 
+/-- The simplex index family used by the sharper lower bound. -/
+abbrev GlobalSimplexIndex (d W C K J : ℕ) :=
+  ↥(goodHigherExponents d W C) × Fin (K - 1) × GlobalSlackSimplex J
+
+/-- Map the simplex family into the eligible global monomials. -/
+def globalSimplexEmbedding {d m A K B W C J : ℕ}
+    (hd : 1 ≤ d) (hJ : J ≤ m) (hdegree : C + J ≤ B)
+    (hweighted : (K - 1) * (C + J) ≤ m * A) :
+    GlobalSimplexIndex d W C K J →
+      ↥(globalEligibleExponents d m A K B W C)
+  | ⟨c, r, a⟩ =>
+      ⟨globalRectangleExponent hd K c.1 r
+          (a.2.1 0) (a.2.1 1) (a.2.1 2),
+        mem_globalEligibleExponents.mpr
+          (globalSimplexExponent_eligible hd hJ hdegree hweighted c r a)⟩
+
+/-- The simplex monomial map is injective. -/
+theorem globalSimplexEmbedding_injective {d m A K B W C J : ℕ}
+    (hd : 1 ≤ d) (hJ : J ≤ m) (hdegree : C + J ≤ B)
+    (hweighted : (K - 1) * (C + J) ≤ m * A) :
+    Function.Injective
+      (globalSimplexEmbedding (W := W) hd hJ hdegree hweighted) := by
+  rintro ⟨c, r, a⟩ ⟨c', r', a'⟩ heq
+  have hexp :
+      globalRectangleExponent hd K c.1 r
+          (a.2.1 0) (a.2.1 1) (a.2.1 2) =
+        globalRectangleExponent hd K c'.1 r'
+          (a'.2.1 0) (a'.2.1 1) (a'.2.1 2) :=
+    congrArg Subtype.val heq
+  have hb₀ : a.2.1 1 = a'.2.1 1 := by
+    simpa using DFunLike.congr_fun hexp (some (jetZeroIndex d))
+  have hb₁ : a.2.1 2 = a'.2.1 2 := by
+    simpa using DFunLike.congr_fun hexp (some (jetOneIndex d hd))
+  have hc : c = c' := by
+    apply Subtype.ext
+    apply Finsupp.ext
+    intro i
+    simpa using DFunLike.congr_fun hexp
+      (some (higherJetIndexEmbedding d i))
+  have hx : r.val + (K - 1) * a.2.1 0 =
+      r'.val + (K - 1) * a'.2.1 0 := by
+    simpa using DFunLike.congr_fun hexp none
+  have hr : r = r' := by
+    apply Fin.ext
+    have hmod := congrArg (fun z : ℕ => z % (K - 1)) hx
+    simpa [Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt r.isLt,
+      Nat.mod_eq_of_lt r'.isLt] using hmod
+  have hs : a.2.1 0 = a'.2.1 0 := by
+    have hk : 0 < K - 1 := Nat.zero_lt_of_lt r.isLt
+    apply Nat.mul_left_cancel hk
+    apply Nat.add_left_cancel (n := r.val)
+    simpa [hr] using hx
+  have haTuple : a.2.1 = a'.2.1 := by
+    funext i
+    fin_cases i
+    · exact hs
+    · exact hb₀
+    · exact hb₁
+  have ha : a = a' := globalSlackSimplex_tuple_injective J haTuple
+  subst c'
+  subst r'
+  subst a'
+  rfl
+
 /-- The rectangular index family has the advertised product cardinality. -/
 theorem card_globalRectangleIndex (d W C K H : ℕ) :
     Fintype.card (GlobalRectangleIndex d W C K H) =
       (goodHigherExponents d W C).card * (K - 1) * H ^ 3 := by
   simp [GlobalRectangleIndex, pow_succ, mul_assoc]
+
+theorem card_globalSimplexIndex (d W C K J : ℕ) :
+    Fintype.card (GlobalSimplexIndex d W C K J) =
+      (goodHigherExponents d W C).card * (K - 1) * (J + 2).choose 3 := by
+  change Fintype.card
+      (↥(goodHigherExponents d W C) × Fin (K - 1) ×
+        GlobalSlackSimplex J) = _
+  simp only [Fintype.card_prod, Fintype.card_coe, Fintype.card_fin]
+  rw [card_globalSlackSimplex]
+  ring
 
 /-- Pure support-counting form of the rectangular lower bound. -/
 theorem card_globalEligibleExponents_lowerBound {d m A K B W C H : ℕ}
@@ -296,6 +492,18 @@ theorem card_globalEligibleExponents_lowerBound {d m A K B W C H : ℕ}
   exact Fintype.card_le_of_injective
     (globalRectangleEmbedding (W := W) hd hH hdegree hweighted)
     (globalRectangleEmbedding_injective (W := W) hd hH hdegree hweighted)
+
+/-- Simplex support-counting lower bound. -/
+theorem card_globalEligibleExponents_simplex_lowerBound
+    {d m A K B W C J : ℕ}
+    (hd : 1 ≤ d) (hJ : J ≤ m) (hdegree : C + J ≤ B)
+    (hweighted : (K - 1) * (C + J) ≤ m * A) :
+    (goodHigherExponents d W C).card * (K - 1) * (J + 2).choose 3 ≤
+      (globalEligibleExponents d m A K B W C).card := by
+  rw [← card_globalSimplexIndex d W C K J, ← Fintype.card_coe]
+  exact Fintype.card_le_of_injective
+    (globalSimplexEmbedding (W := W) hd hJ hdegree hweighted)
+    (globalSimplexEmbedding_injective (W := W) hd hJ hdegree hweighted)
 
 /-- The canonical monomial basis identifies the rank of the interpolation
 space with the exact number of eligible exponents. -/
@@ -323,5 +531,15 @@ theorem finrank_interpolationSpace_lowerBound {q d m A K B W C H : ℕ}
       Module.finrank (ZMod q) (interpolationSpace q d m A K B W C) := by
   rw [finrank_interpolationSpace_eq_card]
   exact card_globalEligibleExponents_lowerBound hd hH hdegree hweighted
+
+/-- Global dimension lower bound with the full three-dimensional simplex. -/
+theorem finrank_interpolationSpace_simplex_lowerBound
+    {q d m A K B W C J : ℕ} [Fact (1 < q)]
+    (hd : 1 ≤ d) (hJ : J ≤ m) (hdegree : C + J ≤ B)
+    (hweighted : (K - 1) * (C + J) ≤ m * A) :
+    (goodHigherExponents d W C).card * (K - 1) * (J + 2).choose 3 ≤
+      Module.finrank (ZMod q) (interpolationSpace q d m A K B W C) := by
+  rw [finrank_interpolationSpace_eq_card]
+  exact card_globalEligibleExponents_simplex_lowerBound hd hJ hdegree hweighted
 
 end RSListDecoding
