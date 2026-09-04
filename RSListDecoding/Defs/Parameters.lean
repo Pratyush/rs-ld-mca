@@ -68,9 +68,26 @@ noncomputable def higherJetDegreeBudget (ε θ : ℝ) : ℕ :=
 noncomputable def interpolationBoxWidthAt (θ : ℝ) (d : ℕ) : ℕ :=
   ⌊θ * (multiplicityAt d : ℝ) / 12⌋₊
 
-/-- Total slack of the optimized global simplex. -/
+/-- Former conservative total slack of the global simplex. -/
 noncomputable def interpolationSimplexWidthAt (θ : ℝ) (d : ℕ) : ℕ :=
   ⌊θ * (multiplicityAt d : ℝ) / 4⌋₊
+
+/-- Largest uniform fraction of the multiplicity budget available to the
+global slack simplex under the current higher-jet cutoff.  The outer minimum
+enforces the independent requirement that the first slack coordinate be
+smaller than the multiplicity. -/
+noncomputable def optimizedSimplexSlackCoefficient (θ : ℝ) : ℝ :=
+  min 1 (θ * (1 + 3 * θ) / (4 * (1 - θ)))
+
+/-- Limiting normalized volume of the optimized three-dimensional slack
+simplex. -/
+noncomputable def optimizedSimplexVolumeCoefficient (θ : ℝ) : ℝ :=
+  optimizedSimplexSlackCoefficient θ ^ 3 / 6
+
+/-- Directly rounded maximal global-simplex width. -/
+noncomputable def optimizedInterpolationSimplexWidthAt
+    (θ : ℝ) (d : ℕ) : ℕ :=
+  ⌊optimizedSimplexSlackCoefficient θ * (multiplicityAt d : ℝ)⌋₊
 
 /-- Original manuscript width, retained by the original capstones. -/
 noncomputable def interpolationBoxWidth (ε θ : ℝ) : ℕ :=

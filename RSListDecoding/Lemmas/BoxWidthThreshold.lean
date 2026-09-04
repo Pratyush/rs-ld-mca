@@ -75,4 +75,28 @@ theorem exists_derivativeOrderThreshold_for_sharpBoxWidth
   rw [le_div_iff₀ (by norm_num : (0 : ℝ) < 12)]
   simpa [mul_comm] using hscaled
 
+/-- Generic near-lossless floor threshold for a positive fraction of the
+cubic multiplicity budget. -/
+theorem exists_derivativeOrderThreshold_for_scaledCube
+    {c : ℝ} (hc : 0 < c) :
+    ∃ D : ℕ, ∀ d : ℕ, D ≤ d →
+      (d : ℝ) + 1 ≤ c * ((d ^ 3 : ℕ) : ℝ) := by
+  let D := max 2 ⌈2 / c⌉₊
+  refine ⟨D, ?_⟩
+  intro d hd
+  have hd2 : 2 ≤ d := (Nat.le_max_left 2 _).trans hd
+  have hceilD : ⌈2 / c⌉₊ ≤ d :=
+    (Nat.le_max_right 2 _).trans hd
+  have hceil : 2 / c ≤ (⌈2 / c⌉₊ : ℝ) := Nat.le_ceil _
+  have hdreal : 2 / c ≤ (d : ℝ) :=
+    hceil.trans (by exact_mod_cast hceilD)
+  have hlinear : 2 ≤ c * (d : ℝ) := by
+    simpa [mul_comm] using (div_le_iff₀ hc).mp hdreal
+  have hdreal2 : (2 : ℝ) ≤ d := by exact_mod_cast hd2
+  norm_num only [Nat.cast_pow]
+  calc
+    (d : ℝ) + 1 ≤ 2 * (d : ℝ) ^ 2 := by nlinarith
+    _ ≤ (c * (d : ℝ)) * (d : ℝ) ^ 2 := by gcongr
+    _ = c * (d : ℝ) ^ 3 := by ring
+
 end RSListDecoding

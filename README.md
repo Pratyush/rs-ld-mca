@@ -26,21 +26,21 @@ capstones retain the exact list bound
 `B * (d + 1) * q^(4*d+4)` and the decoder bound `q^(C*(d+1))`, rather than
 absorbing these into the manuscript's coarser public exponents.
 
-The free-order assembly now keeps the floor and shell-ceiling ratios exact,
-counts the local contact region as a triangle, and counts the three global
-slack variables by their shared simplex of total width
-`floor(θ*d^3/4)`.  The resulting asymptotic rank
-coefficient is `θ^3/384`, versus `θ^3/110592` in the previous rectangular
-assembly—a factor `288` improvement.  This materially reduces the formal
-large-order threshold, although it does not by itself make that threshold
-practical at cryptographic block lengths.
+The free-order assembly keeps all finite ratios exact, counts the local
+contact region as a triangle, and counts the three global slack variables by
+a shared simplex.  Its width is now
+`floor(λ(θ)*d^3)`, where
+`λ(θ)=min(1, θ*(1+3θ)/(4*(1-θ)))`, the largest uniform width allowed by the
+current higher-jet cutoff.  The limiting simplex-volume coefficient is
+`λ(θ)^3/6`, strictly larger than the former `θ^3/384` for every
+`0 < θ < 1`.
 
-The shell-ratio estimate is also sharpened from the slack power
-`d^((5-θ)/(5+θ))` to the explicit bound
-`(2*exp(3))*d^(2/(2+θ))`.  Consequently the rank-saving exponent improves
-from `2θ/(5+θ)` to `θ/(2+θ)`.  This is the limiting exponent of the present
-shell argument; the main all-rate theorem uses the new rounded factor
-directly, including its exact finite-order ceiling.
+The capstone uses the exact smallest natural shell factor
+`ceilDiv(2*(W+N)^(d-1), W^(d-1))`, where
+`N=d^3+d*(d-1)/2`.  Lean proves both its defining inequality and its
+minimality.  It is bounded by the analytic factor
+`ceil((2*exp(3))*d^(2/(2+θ)))`, so the rank-saving exponent remains the sharp
+`θ/(2+θ)` without paying that analytic constant at finite parameters.
 
 The only project-specific assumptions are the cardinality and algorithmic
 clauses of Kopparty's Theorem 4.3, both declared and documented in

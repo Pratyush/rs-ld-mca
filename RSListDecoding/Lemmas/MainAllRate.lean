@@ -8,7 +8,8 @@ The original capstones tie the derivative order to the agreement parameter.
 Here it is chosen freely.  For every fixed `0 < ε < 1` and `0 < θ < 1`,
 the shell estimate, box-width estimate, and final rank comparison all hold
 once `d` exceeds a threshold depending only on `ε, θ`.  The remaining
-interpolation and root-enumeration proof is unchanged.
+interpolation and root-enumeration proof is unchanged.  The finite assembly
+uses the exact minimal shell ratio and the maximal uniform slack simplex.
 -/
 
 noncomputable section
@@ -23,19 +24,20 @@ theorem exists_freeOrderThreshold
       2 ≤ d ∧
       scaledExponentCount d
           (interpolationWeightBudgetAt θ d + multiplicityAt d) ≤
-        optimalScaledShellFactor θ d *
+        exactScaledShellFactor θ d *
           goodScaledExponentCount d
             (interpolationWeightBudgetAt θ d)
             (higherJetDegreeBudgetAt θ d) ∧
       1 < (1 / 6) *
-        ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
+        ((optimizedInterpolationSimplexWidthAt θ d : ℝ) /
+          (d ^ 3 : ℕ)) ^ 3 *
         (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
         (((d : ℝ) ^ 3) /
           (((d : ℝ) ^ 2 + 1) *
-            (optimalScaledShellFactor θ d : ℝ))) := by
-  obtain ⟨dShell, hShell⟩ := exists_optimalScaledShellThreshold hθ hθ₁
+            (exactScaledShellFactor θ d : ℝ))) := by
+  obtain ⟨dShell, hShell⟩ := exists_exactScaledShellThreshold hθ hθ₁
   obtain ⟨dRank, hRank⟩ :=
-    exists_optimalExactSimplexFreeOrderRankThreshold hε hθ hθ₁
+    exists_exactOptimizedSimplexFreeOrderRankThreshold hε hθ hθ₁
   let d₀ := max 2 (max dShell dRank)
   refine ⟨d₀, ?_⟩
   intro d hd₀
@@ -45,11 +47,11 @@ theorem exists_freeOrderThreshold
   have hdShell : dShell ≤ d := (Nat.le_max_left _ _).trans hrest
   have hdRank : dRank ≤ d := (Nat.le_max_right _ _).trans hrest
   obtain ⟨hbad, hratio⟩ := hShell d hdShell
-  have hshellRaw := optimalScaledShell_cardinality_bound hbad hratio
+  have hshellRaw := exactScaledShell_cardinality_bound hbad hratio
   have hshell :
       scaledExponentCount d
           (interpolationWeightBudgetAt θ d + multiplicityAt d) ≤
-        optimalScaledShellFactor θ d *
+        exactScaledShellFactor θ d *
           goodScaledExponentCount d
             (interpolationWeightBudgetAt θ d)
             (higherJetDegreeBudgetAt θ d) := by
@@ -66,17 +68,18 @@ theorem freeOrder_interpolation_dimension_lt
     (hshell :
       scaledExponentCount d
           (interpolationWeightBudgetAt θ d + multiplicityAt d) ≤
-        optimalScaledShellFactor θ d *
+        exactScaledShellFactor θ d *
           goodScaledExponentCount d
             (interpolationWeightBudgetAt θ d)
             (higherJetDegreeBudgetAt θ d))
     (hlarge :
       1 < (1 / 6) *
-        ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
+        ((optimizedInterpolationSimplexWidthAt θ d : ℝ) /
+          (d ^ 3 : ℕ)) ^ 3 *
         (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
         (((d : ℝ) ^ 3) /
           (((d : ℝ) ^ 2 + 1) *
-            (optimalScaledShellFactor θ d : ℝ)))) :
+            (exactScaledShellFactor θ d : ℝ)))) :
     n * Module.finrank (ZMod q)
         (contactEnvelopeSpace (R := ZMod q) (d := d)
           (multiplicityAt d) (interpolationWeightBudgetAt θ d)) <
@@ -87,23 +90,25 @@ theorem freeOrder_interpolation_dimension_lt
           (interpolationWeightBudgetAt θ d)
           (higherJetDegreeBudgetAt θ d)) := by
   have hd : 0 < d := by omega
-  have hcompare := optimalExactSimplexFreeOrder_rank_comparison hd hdK hlarge
-  have hshellPos : 0 < optimalScaledShellFactor θ d :=
-    optimalScaledShellFactor_pos hd
+  have hcompare :=
+    exactSimplexFreeOrder_rank_comparison_of_factor hd hdK hlarge
+  have hshellPos : 0 < exactScaledShellFactor θ d :=
+    exactScaledShellFactor_pos hθ hθ₁ hd2
   have hd3 : 0 < ((d ^ 3 : ℕ) : ℝ) := by positivity
   have hwidthExact :
-      ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) *
-          (d ^ 3 : ℕ) ≤ (interpolationSimplexWidthAt θ d : ℝ) := by
+      ((optimizedInterpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) *
+          (d ^ 3 : ℕ) ≤
+        (optimizedInterpolationSimplexWidthAt θ d : ℝ) := by
     field_simp
     rfl
   have harithmetic :
-      n * ((d ^ 8 + d ^ 6) * optimalScaledShellFactor θ d) <
+      n * ((d ^ 8 + d ^ 6) * exactScaledShellFactor θ d) <
         (ambientDimension ε θ n - 1) *
-          (interpolationSimplexWidthAt θ d + 2).choose 3 :=
+          (optimizedInterpolationSimplexWidthAt θ d + 2).choose 3 :=
     contactEnvelope_scalar_lt_globalSimplex_triangle_exact
       hd hn hshellPos (by positivity) hwidthExact hcompare
   obtain ⟨hJ, hdegree, hweighted⟩ :=
-    freeGlobalDimensionExactSimplexSlacks hε hθ hθ₁ hd hn hdK
+    freeGlobalDimensionOptimizedSimplexSlacks hε hθ hθ₁ hd hn hdK
   change
     n * Module.finrank (ZMod q)
         (contactEnvelopeSpace (R := ZMod q) (d := d)
@@ -120,8 +125,8 @@ theorem freeOrder_interpolation_dimension_lt
     (B := interpolationDegreeBudgetAt d ε θ n)
     (W := interpolationWeightBudgetAt θ d)
     (C := higherJetDegreeBudgetAt θ d)
-    (J := interpolationSimplexWidthAt θ d)
-    (R := optimalScaledShellFactor θ d)
+    (J := optimizedInterpolationSimplexWidthAt θ d)
+    (R := exactScaledShellFactor θ d)
     hd (by simpa [multiplicityAt] using hJ) hdegree hweighted
       (by simpa [multiplicityAt] using hshell) harithmetic
 
@@ -135,17 +140,18 @@ theorem exists_freeOrder_ambient_explainer
     (hshell :
       scaledExponentCount d
           (interpolationWeightBudgetAt θ d + multiplicityAt d) ≤
-        optimalScaledShellFactor θ d *
+        exactScaledShellFactor θ d *
           goodScaledExponentCount d
             (interpolationWeightBudgetAt θ d)
             (higherJetDegreeBudgetAt θ d))
     (hlarge :
       1 < (1 / 6) *
-        ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
+        ((optimizedInterpolationSimplexWidthAt θ d : ℝ) /
+          (d ^ 3 : ℕ)) ^ 3 *
         (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
         (((d : ℝ) ^ 3) /
           (((d : ℝ) ^ 2 + 1) *
-            (optimalScaledShellFactor θ d : ℝ))))
+            (exactScaledShellFactor θ d : ℝ))))
     (alpha : Fin n → ZMod q) (halpha : Function.Injective alpha)
     (y : Fin n → ZMod q) :
     ∃ Q : DifferentialPolynomial q d,

@@ -1,6 +1,7 @@
 import RSListDecoding.Lemmas.ScaledShellDiscrete
 import RSListDecoding.Lemmas.Threshold
 import Mathlib.Analysis.SpecialFunctions.Pow.Asymptotics
+import Mathlib.Algebra.Order.Floor.Div
 
 /-!
 # The rounded scaled-shell estimate
@@ -16,7 +17,8 @@ This file discharges the analytic large-`d` hypotheses left explicit by
 The original repaired shell exponent `(5-θ)/(5+θ)` is retained as a legacy
 comparison point.  The optimized proof below avoids fixed exponent margins
 and proves the sharp constant-times-power estimate `O(d^(2/(2+θ)))`.  The
-corresponding rank saving is `θ/(2+θ)`.
+corresponding rank saving is `θ/(2+θ)`.  The capstone ultimately uses the
+exact minimal finite shell factor; the power estimate proves its asymptotics.
 -/
 
 namespace RSListDecoding
@@ -51,6 +53,13 @@ noncomputable def scaledShellWeight (θ : ℝ) (d : ℕ) : ℕ :=
 derivative order. -/
 noncomputable def scaledShellDegree (θ : ℝ) (d : ℕ) : ℕ :=
   ⌊(1 + 3 * θ / 4) * ((d ^ 3 : ℕ) : ℝ)⌋₊
+
+/-- The smallest natural factor which satisfies the finite shell-ratio
+inequality.  Unlike the analytic power bound, this definition loses no
+leading factor at a concrete derivative order. -/
+noncomputable def exactScaledShellFactor (θ : ℝ) (d : ℕ) : ℕ :=
+  (2 * (scaledShellWeight θ d + d ^ 3 + d * (d - 1) / 2) ^ (d - 1)) ⌈/⌉
+    (scaledShellWeight θ d ^ (d - 1))
 
 @[simp]
 theorem scaledShellWeight_derivativeOrder (ε θ : ℝ) :
@@ -585,6 +594,75 @@ private theorem optimalShellRatioEstimate
     exact_mod_cast hcrossReal
   simpa [Nat.add_assoc] using hnat
 
+/-- Positivity of the denominator occurring in the exact shell ratio. -/
+theorem scaledShellWeight_pow_pos
+    {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1)
+    {d : ℕ} (hd : 2 ≤ d) :
+    0 < scaledShellWeight θ d ^ (d - 1) := by
+  have hratio := optimalShellRatioEstimate hθ hθ₁ hd
+  have hleft :
+      0 < 2 * (scaledShellWeight θ d + d ^ 3 +
+        d * (d - 1) / 2) ^ (d - 1) := by positivity
+  have hright :
+      0 < optimalScaledShellFactor θ d *
+        scaledShellWeight θ d ^ (d - 1) := hleft.trans_le hratio
+  exact pos_of_mul_pos_right hright (Nat.zero_le _)
+
+/-- The defining cross-multiplied inequality for the exact shell factor. -/
+theorem exactScaledShellFactor_spec
+    {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1)
+    {d : ℕ} (hd : 2 ≤ d) :
+    2 * (scaledShellWeight θ d + d ^ 3 + d * (d - 1) / 2) ^ (d - 1) ≤
+      exactScaledShellFactor θ d *
+        scaledShellWeight θ d ^ (d - 1) := by
+  have hden := scaledShellWeight_pow_pos hθ hθ₁ hd
+  have hreflexive :
+      (2 * (scaledShellWeight θ d + d ^ 3 +
+        d * (d - 1) / 2) ^ (d - 1)) ⌈/⌉
+          (scaledShellWeight θ d ^ (d - 1)) ≤
+        (2 * (scaledShellWeight θ d + d ^ 3 +
+          d * (d - 1) / 2) ^ (d - 1)) ⌈/⌉
+            (scaledShellWeight θ d ^ (d - 1)) := le_rfl
+  simpa [exactScaledShellFactor, mul_comm] using
+    (ceilDiv_le_iff_le_mul hden).mp hreflexive
+
+/-- Exact minimality: every natural shell factor satisfying the ratio bound
+dominates `exactScaledShellFactor`. -/
+theorem exactScaledShellFactor_le_iff
+    {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1)
+    {d R : ℕ} (hd : 2 ≤ d) :
+    exactScaledShellFactor θ d ≤ R ↔
+      2 * (scaledShellWeight θ d + d ^ 3 + d * (d - 1) / 2) ^ (d - 1) ≤
+        R * scaledShellWeight θ d ^ (d - 1) := by
+  have hden := scaledShellWeight_pow_pos hθ hθ₁ hd
+  simpa [exactScaledShellFactor, mul_comm] using
+    (ceilDiv_le_iff_le_mul hden :
+      (2 * (scaledShellWeight θ d + d ^ 3 +
+        d * (d - 1) / 2) ^ (d - 1)) ⌈/⌉
+          (scaledShellWeight θ d ^ (d - 1)) ≤ R ↔ _)
+
+/-- The exact finite factor is bounded by the sharp analytic factor. -/
+theorem exactScaledShellFactor_le_optimalScaledShellFactor
+    {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1)
+    {d : ℕ} (hd : 2 ≤ d) :
+    exactScaledShellFactor θ d ≤ optimalScaledShellFactor θ d := by
+  rw [exactScaledShellFactor_le_iff hθ hθ₁ hd]
+  exact optimalShellRatioEstimate hθ hθ₁ hd
+
+/-- The exact finite factor is positive. -/
+theorem exactScaledShellFactor_pos
+    {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1)
+    {d : ℕ} (hd : 2 ≤ d) :
+    0 < exactScaledShellFactor θ d := by
+  have hspec := exactScaledShellFactor_spec hθ hθ₁ hd
+  have hleft :
+      0 < 2 * (scaledShellWeight θ d + d ^ 3 +
+        d * (d - 1) / 2) ^ (d - 1) := by positivity
+  have hproduct :
+      0 < exactScaledShellFactor θ d *
+        scaledShellWeight θ d ^ (d - 1) := hleft.trans_le hspec
+  exact pos_of_mul_pos_left hproduct (Nat.zero_le _)
+
 /-! ## Eventual rounded estimates -/
 
 private theorem tendsto_one_add_log_div_natCast :
@@ -1014,6 +1092,35 @@ theorem exists_optimalScaledShellThreshold
   eventually_atTop.mp
     (eventually_optimalScaledShell_discreteHypotheses hθ hθ₁)
 
+/-- Eventual shell hypotheses using the exact minimal finite factor. -/
+theorem eventually_exactScaledShell_discreteHypotheses
+    {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1) :
+    ∀ᶠ d : ℕ in atTop,
+      2 * ((d - 1) *
+          (scaledShellWeight θ d - (scaledShellDegree θ d + 1) +
+            (d - 1)) ^ (d - 1)) ≤
+          scaledShellWeight θ d ^ (d - 1) ∧
+      2 * (scaledShellWeight θ d + d ^ 3 + d * (d - 1) / 2) ^ (d - 1) ≤
+          exactScaledShellFactor θ d *
+            scaledShellWeight θ d ^ (d - 1) := by
+  filter_upwards [eventually_scaledShell_discreteHypotheses hθ hθ₁,
+      eventually_ge_atTop (2 : ℕ)] with d hold hd
+  exact ⟨hold.1, exactScaledShellFactor_spec hθ hθ₁ hd⟩
+
+/-- Natural-number threshold for the exact finite shell hypotheses. -/
+theorem exists_exactScaledShellThreshold
+    {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1) :
+    ∃ d₀ : ℕ, ∀ d : ℕ, d₀ ≤ d →
+      2 * ((d - 1) *
+          (scaledShellWeight θ d - (scaledShellDegree θ d + 1) +
+            (d - 1)) ^ (d - 1)) ≤
+          scaledShellWeight θ d ^ (d - 1) ∧
+      2 * (scaledShellWeight θ d + d ^ 3 + d * (d - 1) / 2) ^ (d - 1) ≤
+          exactScaledShellFactor θ d *
+            scaledShellWeight θ d ^ (d - 1) :=
+  eventually_atTop.mp
+    (eventually_exactScaledShell_discreteHypotheses hθ hθ₁)
+
 /-- An ordinary natural threshold extracted from the eventual theorem. -/
 theorem exists_scaledShellThreshold
     {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1) :
@@ -1067,6 +1174,26 @@ theorem optimalScaledShell_cardinality_bound
   exact scaledExponentCount_shell_le_mul_goodScaledExponentCount
     d (scaledShellWeight θ d) (scaledShellDegree θ d) (d ^ 3)
       (optimalScaledShellFactor θ d) hbad hratio
+
+/-- Cardinality comparison with the exact minimal finite shell factor. -/
+theorem exactScaledShell_cardinality_bound
+    {θ : ℝ} {d : ℕ}
+    (hbad :
+      2 * ((d - 1) *
+          (scaledShellWeight θ d - (scaledShellDegree θ d + 1) +
+            (d - 1)) ^ (d - 1)) ≤
+        scaledShellWeight θ d ^ (d - 1))
+    (hratio :
+      2 * (scaledShellWeight θ d + d ^ 3 + d * (d - 1) / 2) ^ (d - 1) ≤
+        exactScaledShellFactor θ d *
+          scaledShellWeight θ d ^ (d - 1)) :
+    scaledExponentCount d (scaledShellWeight θ d + d ^ 3) ≤
+      exactScaledShellFactor θ d *
+        goodScaledExponentCount d
+          (scaledShellWeight θ d) (scaledShellDegree θ d) := by
+  exact scaledExponentCount_shell_le_mul_goodScaledExponentCount
+    d (scaledShellWeight θ d) (scaledShellDegree θ d) (d ^ 3)
+      (exactScaledShellFactor θ d) hbad hratio
 
 /-- The sharp scaled-lattice cardinality comparison holds eventually. -/
 theorem eventually_optimalScaledShell_cardinality_bound

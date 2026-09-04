@@ -120,19 +120,37 @@ are `AllRateCombinatorialMainStatement` and
 `all_rate_combinatorial_main` and `all_rate_algorithmic_main`.
 
 The new argument changes only the final parameter assembly.  It sets
-`J=floor(θm/4)` and counts the three free exponents by the shared simplex
+
+\[
+\lambda(\theta)=\min\left\{1,
+\frac{\theta(1+3\theta)}{4(1-\theta)}\right\},\qquad
+J=\lfloor\lambda(\theta)m\rfloor,
+\]
+
+and counts the three free exponents by the shared simplex
 `s+b₀+b₁<J`, rather than by an `H³` box with
 `H=floor(θm/12)`.  Its exact cardinality is
 `choose(J+2,3)`, asymptotic to `J³/6`; rounding `J` only once also dominates
-the earlier choice `3H`.  The weighted and ordinary-degree
-budgets still close because `(1-θ)(1+θ)<1`.  On the local side, the
+the earlier choice `3H`.  This is the largest uniform width compatible with
+the current cutoff `C≤(1+3θ/4)m`: one has
+
+\[
+(1-\theta)\left(1+\frac{3\theta}{4}+\lambda(\theta)\right)\le1,
+\]
+
+while the outer minimum enforces `J≤m`.  On the local side, the
 contact-order constraint is counted by its exact triangular region, giving
 the factor `d⁸+d⁶` rather than the previous rectangular `4d⁸`.  The repaired
 shell estimate already holds eventually in an independent `d`.  The optimized
-shell proof gives
+shell proof bounds the exact minimal finite factor
 
 \[
-R_d=\left\lceil 2e^3 d^{2/(2+\theta)}\right\rceil,
+R_d=
+\left\lceil
+\frac{2(W_d+d^3+d(d-1)/2)^{d-1}}{W_d^{d-1}}
+\right\rceil
+\le
+\left\lceil2e^3d^{2/(2+\theta)}\right\rceil.
 \]
 
 and the capstone consumes the exact finite-order
@@ -144,14 +162,17 @@ rank condition
 \frac{d^3}{(d^2+1)R_d}.
 \]
 
-The following smooth condition is sufficient and proves eventual existence:
+The limiting smooth rank coefficient is therefore
 
 \[
-\frac{\theta^3}{384}
-\left(\frac d{d+1}\right)^3
+\frac{\lambda(\theta)^3}{6}
 \frac{K-1}{n}
 \frac{d^3}{(d^2+1)R_d}>1.
 \]
+
+The capstone retains the exact rounded ratio `J/d³`.  Lean proves that
+`λ(θ)^3/6 > θ^3/384` for every `0<θ<1`; thus the previous coefficient remains
+a valid conservative lower bound but is no longer the operative parameter.
 
 It holds eventually because the exact rounding estimate
 
@@ -172,10 +193,9 @@ floor factor in the weight budget and proving directly that the logarithm of
 the shell ratio is at most `(2/(2+θ)) log d + 3`; it does not spend a fixed
 power margin.  The
 factor `d/(d+2)` tends to one, and every other displayed correction ratio
-also tends to one.  Thus the leading coefficient is `θ³/384`, a factor
-`288` larger than the preceding `θ³/110592` assembly.  All interpolation,
-multiplicity-root, root-counting, and filtering lemmas are reused; only the
-local and global monomial counts are sharpened.
+also tends to one.  All interpolation, multiplicity-root, root-counting, and
+filtering lemmas are reused; only the local and global monomial counts and
+the finite shell factor are sharpened.
 
 Equivalently, for a target rate `R` and agreement `ε > R`, choose any
 `θ` with `R ≤ (1-θ)ε`.  The theorem then decodes a rate-`R` code from an

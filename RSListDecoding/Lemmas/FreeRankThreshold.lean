@@ -9,7 +9,9 @@ import RSListDecoding.Lemmas.ScaledShell
 For fixed positive `ε` and `θ`, the sharp saving exponent
 `θ / (2+θ)` is positive.  Consequently the final rank coefficient tends to
 infinity with a freely chosen derivative order.  This is the step hidden by
-the manuscript's special choice `d = ceil (ε^(-3/θ))`.
+the manuscript's special choice `d = ceil (ε^(-3/θ))`.  The final assembly
+uses both the exact minimal shell ratio and the maximal uniform global slack
+simplex permitted by the current higher-jet cutoff.
 -/
 
 noncomputable section
@@ -116,6 +118,40 @@ theorem optimalScaledShellFactor_rankSaving_lower
     _ = (d : ℝ) := by
       rw [optimalScaledShellExponent_add_optimalRankSavingExponent hθ,
         Real.rpow_one]
+
+/-- The same asymptotic saving holds for the exact finite shell factor, and
+its right-hand side is pointwise at least as large. -/
+theorem exactScaledShellFactor_rankSaving_lower
+    {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1)
+    {d : ℕ} (hd : 2 ≤ d) :
+    (1 / (2 * Real.exp 3 + 1)) *
+        (d : ℝ) ^ optimalRankSavingExponent θ ≤
+      (d : ℝ) / (exactScaledShellFactor θ d : ℝ) := by
+  have hbase := optimalScaledShellFactor_rankSaving_lower hθ
+    (show 1 ≤ d by omega)
+  have hfactor :=
+    exactScaledShellFactor_le_optimalScaledShellFactor hθ hθ₁ hd
+  have hexact : 0 < (exactScaledShellFactor θ d : ℝ) := by
+    exact_mod_cast exactScaledShellFactor_pos hθ hθ₁ hd
+  have hoptimal : 0 < (optimalScaledShellFactor θ d : ℝ) := by
+    exact_mod_cast optimalScaledShellFactor_pos (show 0 < d by omega)
+  exact hbase.trans (div_le_div_of_nonneg_left (by positivity) hexact
+    (by exact_mod_cast hfactor))
+
+/-- Eventually the optimized simplex loses only the exact relative floor
+factor `d/(d+1)` from its limiting width. -/
+theorem exists_optimizedSimplexWidthFloorThreshold
+    {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1) :
+    ∃ d₀ : ℕ, ∀ d : ℕ, d₀ ≤ d →
+      optimizedSimplexSlackCoefficient θ *
+          ((d : ℝ) / (d + 1)) * (multiplicityAt d : ℝ) ≤
+        (optimizedInterpolationSimplexWidthAt θ d : ℝ) := by
+  obtain ⟨d₀, hd₀⟩ := exists_derivativeOrderThreshold_for_scaledCube
+    (optimizedSimplexSlackCoefficient_pos hθ hθ₁)
+  refine ⟨d₀, ?_⟩
+  intro d hd
+  apply sharp_optimizedInterpolationSimplexWidthAtTarget_le_cast
+  simpa [multiplicityAt] using hd₀ d hd
 
 /-- At any fixed positive agreement and slack, all sufficiently large free
 derivative orders satisfy the scalar rank comparison after replacing the
@@ -417,6 +453,215 @@ theorem exists_optimalExactSimplexFreeOrderRankThreshold
             (optimalScaledShellFactor θ d : ℝ))) := by
       gcongr
 
+/-- Fully optimized finite rank threshold: exact minimal shell ratio and the
+largest uniform global simplex allowed by the current higher-jet cutoff. -/
+theorem exists_exactOptimizedSimplexFreeOrderRankThreshold
+    {ε θ : ℝ} (hε : 0 < ε) (hθ : 0 < θ) (hθ₁ : θ < 1) :
+    ∃ d₀ : ℕ, ∀ d : ℕ, d₀ ≤ d →
+      1 < (1 / 6) *
+        ((optimizedInterpolationSimplexWidthAt θ d : ℝ) /
+          (d ^ 3 : ℕ)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) *
+            (exactScaledShellFactor θ d : ℝ))) := by
+  let c := optimizedSimplexSlackCoefficient θ ^ 3 *
+    ((1 - θ) * ε) / (192 * (2 * Real.exp 3 + 1))
+  have hc : 0 < c := by
+    dsimp [c]
+    positivity [optimizedSimplexSlackCoefficient_pos hθ hθ₁]
+  have hpower :
+      Tendsto (fun d : ℕ => (d : ℝ) ^ optimalRankSavingExponent θ)
+        atTop atTop :=
+    (tendsto_rpow_atTop (optimalRankSavingExponent_pos hθ)).comp
+      tendsto_natCast_atTop_atTop
+  have hproduct : Tendsto
+      (fun d : ℕ => c * (d : ℝ) ^ optimalRankSavingExponent θ)
+      atTop atTop := hpower.const_mul_atTop hc
+  obtain ⟨dPower, hdPower⟩ := eventually_atTop.mp
+    (hproduct.eventually (eventually_gt_atTop (1 : ℝ)))
+  obtain ⟨dWidth, hdWidth⟩ :=
+    exists_optimizedSimplexWidthFloorThreshold hθ hθ₁
+  refine ⟨max 2 (max dPower dWidth), ?_⟩
+  intro d hdmax
+  have hd2 : 2 ≤ d := (Nat.le_max_left 2 _).trans hdmax
+  have hrest : max dPower dWidth ≤ d :=
+    (Nat.le_max_right 2 _).trans hdmax
+  have hdPowerD : dPower ≤ d := (Nat.le_max_left _ _).trans hrest
+  have hdWidthD : dWidth ≤ d := (Nat.le_max_right _ _).trans hrest
+  have hdpos : 0 < d := by omega
+  have hdR : 0 < (d : ℝ) := by exact_mod_cast hdpos
+  have hd3 : 0 < ((d ^ 3 : ℕ) : ℝ) := by positivity
+  have hfactorPos : 0 < (exactScaledShellFactor θ d : ℝ) := by
+    exact_mod_cast exactScaledShellFactor_pos hθ hθ₁ hd2
+  have hCoeffPos : 0 < optimizedSimplexSlackCoefficient θ :=
+    optimizedSimplexSlackCoefficient_pos hθ hθ₁
+  have hbigC : 0 < 2 * Real.exp 3 + 1 := by positivity
+  have hwidthFloor := hdWidth d hdWidthD
+  have hwidthRatio :
+      optimizedSimplexSlackCoefficient θ * ((d : ℝ) / (d + 1)) ≤
+        (optimizedInterpolationSimplexWidthAt θ d : ℝ) /
+          (d ^ 3 : ℕ) := by
+    rw [le_div_iff₀ hd3]
+    simpa [multiplicityAt, mul_assoc] using hwidthFloor
+  have hhalfWidth : (1 / 2 : ℝ) ≤ (d : ℝ) / (d + 1) := by
+    rw [le_div_iff₀ (by positivity : 0 < (d : ℝ) + 1)]
+    have hd1 : (1 : ℝ) ≤ d := by exact_mod_cast (show 1 ≤ d by omega)
+    linarith
+  have hwidthLower :
+      optimizedSimplexSlackCoefficient θ / 2 ≤
+        (optimizedInterpolationSimplexWidthAt θ d : ℝ) /
+          (d ^ 3 : ℕ) := by
+    calc
+      optimizedSimplexSlackCoefficient θ / 2 =
+          optimizedSimplexSlackCoefficient θ * (1 / 2) := by ring
+      _ ≤ optimizedSimplexSlackCoefficient θ *
+          ((d : ℝ) / (d + 1)) :=
+        mul_le_mul_of_nonneg_left hhalfWidth hCoeffPos.le
+      _ ≤ _ := hwidthRatio
+  have hhalfRate : (1 / 2 : ℝ) ≤ (d : ℝ) / (d + 2) := by
+    rw [le_div_iff₀ (by positivity : 0 < (d : ℝ) + 2)]
+    have hdreal : (2 : ℝ) ≤ d := by exact_mod_cast hd2
+    linarith
+  have hrateLower :
+      ((1 - θ) * ε) / 2 ≤
+        ((d : ℝ) / (d + 2)) * ((1 - θ) * ε) := by
+    calc
+      ((1 - θ) * ε) / 2 = (1 / 2) * ((1 - θ) * ε) := by ring
+      _ ≤ ((d : ℝ) / (d + 2)) * ((1 - θ) * ε) := by gcongr
+  have hsaving := exactScaledShellFactor_rankSaving_lower hθ hθ₁ hd2
+  have htriangle :
+      (d : ℝ) / (exactScaledShellFactor θ d : ℝ) ≤
+        2 * (d : ℝ) ^ 3 /
+          (((d : ℝ) ^ 2 + 1) *
+            (exactScaledShellFactor θ d : ℝ)) := by
+    rw [div_le_iff₀ hfactorPos]
+    have hd1 : (1 : ℝ) ≤ d := by exact_mod_cast (show 1 ≤ d by omega)
+    field_simp
+    nlinarith [sq_nonneg ((d : ℝ) - 1)]
+  have hcontactLower :
+      (1 / (2 * (2 * Real.exp 3 + 1))) *
+          (d : ℝ) ^ optimalRankSavingExponent θ ≤
+        ((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) *
+            (exactScaledShellFactor θ d : ℝ)) := by
+    calc
+      (1 / (2 * (2 * Real.exp 3 + 1))) *
+          (d : ℝ) ^ optimalRankSavingExponent θ =
+        (1 / 2) *
+          ((1 / (2 * Real.exp 3 + 1)) *
+            (d : ℝ) ^ optimalRankSavingExponent θ) := by
+          field_simp [hbigC.ne']
+      _ ≤ (1 / 2) *
+          ((d : ℝ) / (exactScaledShellFactor θ d : ℝ)) := by gcongr
+      _ ≤ (1 / 2) *
+          (2 * (d : ℝ) ^ 3 /
+            (((d : ℝ) ^ 2 + 1) *
+              (exactScaledShellFactor θ d : ℝ))) :=
+        mul_le_mul_of_nonneg_left htriangle (by positivity)
+      _ = ((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) *
+            (exactScaledShellFactor θ d : ℝ)) := by ring
+  calc
+    1 < c * (d : ℝ) ^ optimalRankSavingExponent θ :=
+      hdPower d hdPowerD
+    _ = (1 / 6) *
+        (optimizedSimplexSlackCoefficient θ / 2) ^ 3 *
+        (((1 - θ) * ε) / 2) *
+        ((1 / (2 * (2 * Real.exp 3 + 1))) *
+          (d : ℝ) ^ optimalRankSavingExponent θ) := by
+      dsimp [c]
+      field_simp [hbigC.ne']
+      ring
+    _ ≤ (1 / 6) *
+        ((optimizedInterpolationSimplexWidthAt θ d : ℝ) /
+          (d ^ 3 : ℕ)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) *
+            (exactScaledShellFactor θ d : ℝ))) := by
+      gcongr
+
+/-- Smooth form of the optimized rank threshold.  Its leading simplex-volume
+coefficient is `λ(θ)^3/6`, strictly larger than `θ^3/384`. -/
+theorem exists_optimizedCoefficientFreeOrderRankThreshold
+    {ε θ : ℝ} (hε : 0 < ε) (hθ : 0 < θ) (hθ₁ : θ < 1) :
+    ∃ d₀ : ℕ, ∀ d : ℕ, d₀ ≤ d →
+      1 < optimizedSimplexVolumeCoefficient θ *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) *
+            (exactScaledShellFactor θ d : ℝ))) := by
+  obtain ⟨d₀, hd₀⟩ :=
+    exists_exactOptimizedSimplexFreeOrderRankThreshold hε hθ hθ₁
+  refine ⟨d₀, ?_⟩
+  intro d hd
+  have hexact := hd₀ d hd
+  have hwidth :=
+    optimizedInterpolationSimplexWidthAt_cast_le hθ hθ₁ (d := d)
+  have hdpos : 0 < d := by
+    by_contra hzero
+    have : d = 0 := Nat.eq_zero_of_not_pos hzero
+    subst d
+    norm_num [optimizedInterpolationSimplexWidthAt,
+      exactScaledShellFactor] at hexact
+  have hd3 : 0 < ((d ^ 3 : ℕ) : ℝ) := by positivity
+  have hratio :
+      (optimizedInterpolationSimplexWidthAt θ d : ℝ) /
+          (d ^ 3 : ℕ) ≤ optimizedSimplexSlackCoefficient θ := by
+    rw [div_le_iff₀ hd3]
+    simpa [multiplicityAt] using hwidth
+  calc
+    1 < (1 / 6) *
+        ((optimizedInterpolationSimplexWidthAt θ d : ℝ) /
+          (d ^ 3 : ℕ)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) *
+            (exactScaledShellFactor θ d : ℝ))) := hexact
+    _ ≤ optimizedSimplexVolumeCoefficient θ *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) *
+            (exactScaledShellFactor θ d : ℝ))) := by
+      rw [optimizedSimplexVolumeCoefficient]
+      have hcoefficient :
+          (1 / 6) *
+              ((optimizedInterpolationSimplexWidthAt θ d : ℝ) /
+                (d ^ 3 : ℕ)) ^ 3 ≤
+            optimizedSimplexSlackCoefficient θ ^ 3 / 6 := by
+        have hratioNonneg :
+            0 ≤ (optimizedInterpolationSimplexWidthAt θ d : ℝ) /
+              (d ^ 3 : ℕ) := by positivity
+        have hp := pow_le_pow_left₀ hratioNonneg hratio 3
+        nlinarith
+      calc
+        (1 / 6) *
+            ((optimizedInterpolationSimplexWidthAt θ d : ℝ) /
+              (d ^ 3 : ℕ)) ^ 3 *
+            (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+            (((d : ℝ) ^ 3) /
+              (((d : ℝ) ^ 2 + 1) *
+                (exactScaledShellFactor θ d : ℝ))) =
+          ((1 / 6) *
+            ((optimizedInterpolationSimplexWidthAt θ d : ℝ) /
+              (d ^ 3 : ℕ)) ^ 3) *
+            ((((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+              (((d : ℝ) ^ 3) /
+                (((d : ℝ) ^ 2 + 1) *
+                  (exactScaledShellFactor θ d : ℝ)))) := by ring
+        _ ≤ (optimizedSimplexSlackCoefficient θ ^ 3 / 6) *
+            ((((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+              (((d : ℝ) ^ 3) /
+                (((d : ℝ) ^ 2 + 1) *
+                  (exactScaledShellFactor θ d : ℝ)))) :=
+          mul_le_mul_of_nonneg_right hcoefficient (by positivity)
+        _ = (optimizedSimplexSlackCoefficient θ ^ 3 / 6) *
+            (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+            (((d : ℝ) ^ 3) /
+              (((d : ℝ) ^ 2 + 1) *
+                (exactScaledShellFactor θ d : ℝ))) := by ring
+
 /-- The same threshold supplies the exact comparison consumed by the
 discrete dimension theorem, uniformly in the block length. -/
 theorem freeOrder_rank_comparison
@@ -521,16 +766,16 @@ theorem simplexFreeOrder_rank_comparison
 /-- Exact-floor global-simplex rank comparison for an arbitrary positive
 shell factor. -/
 theorem exactSimplexFreeOrder_rank_comparison_of_factor
-    {ε θ : ℝ} {d n R : ℕ}
+    {ε θ : ℝ} {d n R J : ℕ}
     (hd : 0 < d) (hdK : d < ambientDimension ε θ n)
     (hlarge :
       1 < (1 / 6) *
-        ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
+        ((J : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
         (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
         (((d : ℝ) ^ 3) /
           (((d : ℝ) ^ 2 + 1) * (R : ℝ)))) :
     1 < (1 / 6) *
-      ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
+      ((J : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
       (((ambientDimension ε θ n - 1 : ℕ) : ℝ) / (n : ℝ)) *
       (((d : ℝ) ^ 3) /
         (((d : ℝ) ^ 2 + 1) * (R : ℝ))) := by
@@ -538,12 +783,12 @@ theorem exactSimplexFreeOrder_rank_comparison_of_factor
     order_ratio_mul_rate_le_ambientDimension_sub_one_div hd hdK
   calc
     1 < (1 / 6) *
-        ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
+        ((J : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
         (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
         (((d : ℝ) ^ 3) /
           (((d : ℝ) ^ 2 + 1) * (R : ℝ))) := hlarge
     _ ≤ (1 / 6) *
-        ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
+        ((J : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
       (((ambientDimension ε θ n - 1 : ℕ) : ℝ) / (n : ℝ)) *
       (((d : ℝ) ^ 3) /
         (((d : ℝ) ^ 2 + 1) * (R : ℝ))) := by
