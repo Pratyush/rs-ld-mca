@@ -1,0 +1,14 @@
+name = "RSListDecoding"
+version = "0.1.0"
+defaultTargets = ["RSListDecoding"]
+
+# Make misspelled or undeclared identifiers fail at elaboration time.
+leanOptions = { autoImplicit = false, relaxedAutoImplicit = false }
+
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4.git"
+rev = "v4.32.0"
+
+[[lean_lib]]
+name = "RSListDecoding"
