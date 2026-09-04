@@ -6,8 +6,8 @@ import RSListDecoding.Lemmas.ScaledShell
 /-!
 # The final rank comparison at arbitrary agreement
 
-For fixed positive `ε` and `θ`, the saving exponent
-`2θ / (5+θ)` is positive.  Consequently the final rank coefficient tends to
+For fixed positive `ε` and `θ`, the sharp saving exponent
+`θ / (2+θ)` is positive.  Consequently the final rank coefficient tends to
 infinity with a freely chosen derivative order.  This is the step hidden by
 the manuscript's special choice `d = ceil (ε^(-3/θ))`.
 -/
@@ -72,6 +72,50 @@ theorem rankSavingExponent_pos {θ : ℝ} (hθ : 0 < θ) :
     0 < rankSavingExponent θ := by
   unfold rankSavingExponent
   positivity
+
+/-- Sharp power saved after the contact-envelope factor `1/d`. -/
+def optimalRankSavingExponent (θ : ℝ) : ℝ := θ / (2 + θ)
+
+theorem optimalRankSavingExponent_pos {θ : ℝ} (hθ : 0 < θ) :
+    0 < optimalRankSavingExponent θ := by
+  unfold optimalRankSavingExponent
+  positivity
+
+/-- The sharp shell exponent and sharp rank saving are complementary. -/
+theorem optimalScaledShellExponent_add_optimalRankSavingExponent
+    {θ : ℝ} (hθ : 0 < θ) :
+    optimalScaledShellExponent θ + optimalRankSavingExponent θ = 1 := by
+  unfold optimalScaledShellExponent optimalRankSavingExponent
+  field_simp [ne_of_gt (by linarith : 0 < 2 + θ)]
+
+/-- Explicit sharp saving extracted from the rounded shell factor. -/
+theorem optimalScaledShellFactor_rankSaving_lower
+    {θ : ℝ} (hθ : 0 < θ) {d : ℕ} (hd : 1 ≤ d) :
+    (1 / (2 * Real.exp 3 + 1)) *
+        (d : ℝ) ^ optimalRankSavingExponent θ ≤
+      (d : ℝ) / (optimalScaledShellFactor θ d : ℝ) := by
+  have hd0 : 0 < d := by omega
+  have hdR : 0 < (d : ℝ) := by exact_mod_cast hd0
+  have hfactorPos : 0 < (optimalScaledShellFactor θ d : ℝ) := by
+    exact_mod_cast optimalScaledShellFactor_pos hd0
+  have hconstantPos : 0 < 2 * Real.exp 3 + 1 := by positivity
+  have hfactor := optimalScaledShellFactor_cast_le_const_mul_rpow hθ hd
+  rw [le_div_iff₀ hfactorPos]
+  calc
+    (1 / (2 * Real.exp 3 + 1)) *
+          (d : ℝ) ^ optimalRankSavingExponent θ *
+          (optimalScaledShellFactor θ d : ℝ) ≤
+        (1 / (2 * Real.exp 3 + 1)) *
+          (d : ℝ) ^ optimalRankSavingExponent θ *
+          ((2 * Real.exp 3 + 1) *
+            (d : ℝ) ^ optimalScaledShellExponent θ) := by gcongr
+    _ = (d : ℝ) ^
+        (optimalScaledShellExponent θ + optimalRankSavingExponent θ) := by
+      rw [Real.rpow_add hdR]
+      field_simp
+    _ = (d : ℝ) := by
+      rw [optimalScaledShellExponent_add_optimalRankSavingExponent hθ,
+        Real.rpow_one]
 
 /-- At any fixed positive agreement and slack, all sufficiently large free
 derivative orders satisfy the scalar rank comparison after replacing the
@@ -319,6 +363,60 @@ theorem exists_exactSimplexFreeOrderRankThreshold
           (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := by
       gcongr
 
+/-- Exact-floor threshold with the sharp shell factor.  The old threshold
+transfers because the new constant-times-`d^(2/(2+θ))` factor is eventually
+no larger than the former slack-power ceiling. -/
+theorem exists_optimalExactSimplexFreeOrderRankThreshold
+    {ε θ : ℝ} (hε : 0 < ε) (hθ : 0 < θ) (hθ₁ : θ < 1) :
+    ∃ d₀ : ℕ, ∀ d : ℕ, d₀ ≤ d →
+      1 < (1 / 6) *
+        ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) *
+            (optimalScaledShellFactor θ d : ℝ))) := by
+  obtain ⟨dRank, hRank⟩ :=
+    exists_exactSimplexFreeOrderRankThreshold hε hθ hθ₁
+  obtain ⟨dFactor, hFactor⟩ := eventually_atTop.mp
+    (eventually_optimalScaledShellFactor_le_scaledShellFactor hθ hθ₁)
+  refine ⟨max dRank dFactor, ?_⟩
+  intro d hdmax
+  have hdRank : dRank ≤ d := (Nat.le_max_left _ _).trans hdmax
+  have hdFactor : dFactor ≤ d := (Nat.le_max_right _ _).trans hdmax
+  have hold := hRank d hdRank
+  have hfactor := hFactor d hdFactor
+  have hd : 0 < d := by
+    by_contra hd0
+    have : d = 0 := Nat.eq_zero_of_not_pos hd0
+    subst d
+    norm_num [scaledShellFactor, optimalScaledShellFactor] at hold
+  have holdPos : 0 < (scaledShellFactor θ d : ℝ) := by
+    exact_mod_cast scaledShellFactor_pos hd
+  have hnewPos : 0 < (optimalScaledShellFactor θ d : ℝ) := by
+    exact_mod_cast optimalScaledShellFactor_pos hd
+  have hkernel :
+      ((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ)) ≤
+        ((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) *
+            (optimalScaledShellFactor θ d : ℝ)) := by
+    apply div_le_div_of_nonneg_left (by positivity) (by positivity)
+    exact mul_le_mul_of_nonneg_left (by exact_mod_cast hfactor)
+      (by positivity)
+  calc
+    1 < (1 / 6) *
+        ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := hold
+    _ ≤ (1 / 6) *
+        ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) *
+            (optimalScaledShellFactor θ d : ℝ))) := by
+      gcongr
+
 /-- The same threshold supplies the exact comparison consumed by the
 discrete dimension theorem, uniformly in the block length. -/
 theorem freeOrder_rank_comparison
@@ -420,7 +518,39 @@ theorem simplexFreeOrder_rank_comparison
           (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := by
       gcongr
 
-/-- Exact-floor global-simplex rank comparison. -/
+/-- Exact-floor global-simplex rank comparison for an arbitrary positive
+shell factor. -/
+theorem exactSimplexFreeOrder_rank_comparison_of_factor
+    {ε θ : ℝ} {d n R : ℕ}
+    (hd : 0 < d) (hdK : d < ambientDimension ε θ n)
+    (hlarge :
+      1 < (1 / 6) *
+        ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (R : ℝ)))) :
+    1 < (1 / 6) *
+      ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
+      (((ambientDimension ε θ n - 1 : ℕ) : ℝ) / (n : ℝ)) *
+      (((d : ℝ) ^ 3) /
+        (((d : ℝ) ^ 2 + 1) * (R : ℝ))) := by
+  have hratio :=
+    order_ratio_mul_rate_le_ambientDimension_sub_one_div hd hdK
+  calc
+    1 < (1 / 6) *
+        ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (R : ℝ))) := hlarge
+    _ ≤ (1 / 6) *
+        ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
+      (((ambientDimension ε θ n - 1 : ℕ) : ℝ) / (n : ℝ)) *
+      (((d : ℝ) ^ 3) /
+        (((d : ℝ) ^ 2 + 1) * (R : ℝ))) := by
+      gcongr
+
+/-- Exact-floor global-simplex rank comparison for the original shell
+factor. -/
 theorem exactSimplexFreeOrder_rank_comparison
     {ε θ : ℝ} {d n : ℕ}
     (hd : 0 < d) (hdK : d < ambientDimension ε θ n)
@@ -434,20 +564,26 @@ theorem exactSimplexFreeOrder_rank_comparison
       ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
       (((ambientDimension ε θ n - 1 : ℕ) : ℝ) / (n : ℝ)) *
       (((d : ℝ) ^ 3) /
-        (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := by
-  have hratio :=
-    order_ratio_mul_rate_le_ambientDimension_sub_one_div hd hdK
-  calc
-    1 < (1 / 6) *
+        (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) :=
+  exactSimplexFreeOrder_rank_comparison_of_factor hd hdK hlarge
+
+/-- Exact-floor global-simplex rank comparison for the sharp shell factor. -/
+theorem optimalExactSimplexFreeOrder_rank_comparison
+    {ε θ : ℝ} {d n : ℕ}
+    (hd : 0 < d) (hdK : d < ambientDimension ε θ n)
+    (hlarge :
+      1 < (1 / 6) *
         ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
         (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
         (((d : ℝ) ^ 3) /
-          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := hlarge
-    _ ≤ (1 / 6) *
-        ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
-        (((ambientDimension ε θ n - 1 : ℕ) : ℝ) / (n : ℝ)) *
-        (((d : ℝ) ^ 3) /
-          (((d : ℝ) ^ 2 + 1) * (scaledShellFactor θ d : ℝ))) := by
-      gcongr
+          (((d : ℝ) ^ 2 + 1) *
+            (optimalScaledShellFactor θ d : ℝ)))) :
+    1 < (1 / 6) *
+      ((interpolationSimplexWidthAt θ d : ℝ) / (d ^ 3 : ℕ)) ^ 3 *
+      (((ambientDimension ε θ n - 1 : ℕ) : ℝ) / (n : ℝ)) *
+      (((d : ℝ) ^ 3) /
+        (((d : ℝ) ^ 2 + 1) *
+          (optimalScaledShellFactor θ d : ℝ))) :=
+  exactSimplexFreeOrder_rank_comparison_of_factor hd hdK hlarge
 
 end RSListDecoding

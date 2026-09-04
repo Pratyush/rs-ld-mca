@@ -128,8 +128,14 @@ the earlier choice `3H`.  The weighted and ordinary-degree
 budgets still close because `(1-θ)(1+θ)<1`.  On the local side, the
 contact-order constraint is counted by its exact triangular region, giving
 the factor `d⁸+d⁶` rather than the previous rectangular `4d⁸`.  The repaired
-shell estimate already holds eventually in an independent `d`.  Writing
-`R_d=ceil(d^((5-θ)/(5+θ)))`, the capstone consumes the exact finite-order
+shell estimate already holds eventually in an independent `d`.  The optimized
+shell proof gives
+
+\[
+R_d=\left\lceil 2e^3 d^{2/(2+\theta)}\right\rceil,
+\]
+
+and the capstone consumes the exact finite-order
 rank condition
 
 \[
@@ -154,7 +160,17 @@ It holds eventually because the exact rounding estimate
 \frac{d}{d+2}(1-\theta)\varepsilon
 \]
 
-holds whenever `d < K`, and the exponent `2θ/(5+θ)` is positive.  The
+holds whenever `d < K`, and the sharp saving exponent `θ/(2+θ)` is positive:
+
+\[
+\frac{2}{2+\theta}+\frac{\theta}{2+\theta}=1.
+\]
+
+The former proof used the looser shell exponent `(5-θ)/(5+θ)` and therefore
+saved only `2θ/(5+θ)`.  The new estimate follows by retaining the relative
+floor factor in the weight budget and proving directly that the logarithm of
+the shell ratio is at most `(2/(2+θ)) log d + 3`; it does not spend a fixed
+power margin.  The
 factor `d/(d+2)` tends to one, and every other displayed correction ratio
 also tends to one.  Thus the leading coefficient is `θ³/384`, a factor
 `288` larger than the preceding `θ³/110592` assembly.  All interpolation,

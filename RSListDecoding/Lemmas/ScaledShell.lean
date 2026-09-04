@@ -13,22 +13,32 @@ This file discharges the analytic large-`d` hypotheses left explicit by
 * filter arguments show that those elementary bounds hold for all sufficiently
   large `d`, for each fixed `0 < θ < 1`.
 
-The shell exponent is `(5-θ)/(5+θ)`.  This is the exponent compatible with
-the subsequent interpolation/rank comparison; the smaller exponent printed
-in the draft is not valid throughout `0 < θ < 1` (MF-003).
+The original repaired shell exponent `(5-θ)/(5+θ)` is retained as a legacy
+comparison point.  The optimized proof below avoids fixed exponent margins
+and proves the sharp constant-times-power estimate `O(d^(2/(2+θ)))`.  The
+corresponding rank saving is `θ/(2+θ)`.
 -/
 
 namespace RSListDecoding
 
 open Filter Asymptotics
 
-/-- The repaired exponent in the scaled-shell estimate. -/
+/-- The former repaired exponent in the scaled-shell estimate. -/
 noncomputable def scaledShellExponent (θ : ℝ) : ℝ :=
   (5 - θ) / (5 + θ)
 
 /-- The natural shell factor used in the discrete cardinality bound. -/
 noncomputable def scaledShellFactor (θ : ℝ) (d : ℕ) : ℕ :=
   ⌈(d : ℝ) ^ scaledShellExponent θ⌉₊
+
+/-- Sharp exponent governing the scaled-shell ratio. -/
+noncomputable def optimalScaledShellExponent (θ : ℝ) : ℝ :=
+  2 / (2 + θ)
+
+/-- Constant-times-power shell factor.  The constant absorbs the additive
+terms in the logarithm of the shell ratio, avoiding any exponent slack. -/
+noncomputable def optimalScaledShellFactor (θ : ℝ) (d : ℕ) : ℕ :=
+  ⌈(2 * Real.exp 3) * (d : ℝ) ^ optimalScaledShellExponent θ⌉₊
 
 /-- The weight budget, written as a function of the already chosen derivative
 order.  This is definitionally the same expression as
@@ -156,6 +166,20 @@ private theorem one_lt_shellBadDecay {θ : ℝ} (hθ : 0 < θ) :
   have : 1 < shellB₁ θ / shellA θ :=
     (lt_div_iff₀ ha).2 (by simpa using hab)
   linarith
+
+/-- A relative floor bound used to retain the sharp shell exponent. -/
+private theorem relative_natFloor_lower {d : ℕ} {x : ℝ}
+    (hx : (d : ℝ) + 1 ≤ x) :
+    (d : ℝ) / (d + 1) * x ≤ (⌊x⌋₊ : ℝ) := by
+  have hd1 : 0 < (d : ℝ) + 1 := by positivity
+  have hscaled : (d : ℝ) / (d + 1) * x ≤ x - 1 := by
+    rw [div_mul_eq_mul_div, div_le_iff₀ hd1]
+    have hdiff : 0 ≤ x - ((d : ℝ) + 1) := sub_nonneg.mpr hx
+    calc
+      (d : ℝ) * x ≤ (d : ℝ) * x + (x - ((d : ℝ) + 1)) :=
+        le_add_of_nonneg_right hdiff
+      _ = (x - 1) * ((d : ℝ) + 1) := by ring
+  exact hscaled.trans (Nat.sub_one_lt_floor x).le
 
 /-! ## Two generic real-to-discrete estimates -/
 
@@ -383,6 +407,184 @@ private theorem shellRatioEstimate
     exact_mod_cast hcrossReal
   simpa [Nat.add_assoc] using hnat
 
+set_option maxHeartbeats 500000 in
+/-- The shell ratio has the sharp power `d^(2/(2+θ))`, with explicit leading
+factor `2*exp(3)`. -/
+private theorem optimalShellRatioEstimate
+    {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1)
+    {d : ℕ} (hd : 2 ≤ d) :
+    2 * (scaledShellWeight θ d + d ^ 3 + d * (d - 1) / 2) ^ (d - 1) ≤
+      optimalScaledShellFactor θ d * scaledShellWeight θ d ^ (d - 1) := by
+  let a := shellA θ
+  let e := optimalScaledShellExponent θ
+  let W := scaledShellWeight θ d
+  let r := d - 1
+  let N := d ^ 3 + d * (d - 1) / 2
+  let L := 1 + Real.log (d : ℝ)
+  have hd0 : 0 < d := by omega
+  have hdR : 0 < (d : ℝ) := by exact_mod_cast hd0
+  have hd1R : 1 ≤ (d : ℝ) := by exact_mod_cast hd0
+  have ha : 0 < a := shellA_pos hθ
+  have ha1 : 1 ≤ a := by
+    dsimp [a, shellA]
+    linarith
+  have hePos : 0 < e := by
+    dsimp [e, optimalScaledShellExponent]
+    positivity
+  have heOne : e ≤ 1 := by
+    dsimp [e, optimalScaledShellExponent]
+    rw [div_le_one (by linarith : 0 < 2 + θ)]
+    linarith
+  have hea : e * a = 1 := by
+    dsimp [e, a, optimalScaledShellExponent, shellA]
+    field_simp [ne_of_gt (by linarith : 0 < 2 + θ)]
+  have hLpos : 0 < L := by
+    dsimp [L]
+    have := Real.log_nonneg hd1R
+    linarith
+  have hLle : L ≤ (d : ℝ) := by
+    have hlog := Real.log_le_sub_one_of_pos hdR
+    dsimp [L]
+    linarith
+  have hlargeFloor : (d : ℝ) + 1 ≤
+      a * (d : ℝ) ^ 4 / L := by
+    rw [le_div_iff₀ hLpos]
+    have hmulL : ((d : ℝ) + 1) * L ≤
+        ((d : ℝ) + 1) * (d : ℝ) := by gcongr
+    have hd2R : (2 : ℝ) ≤ d := by exact_mod_cast hd
+    calc
+      ((d : ℝ) + 1) * L ≤ ((d : ℝ) + 1) * (d : ℝ) := hmulL
+      _ ≤ (d : ℝ) ^ 4 := by nlinarith [sq_nonneg ((d : ℝ) - 2)]
+      _ ≤ a * (d : ℝ) ^ 4 := by
+        exact le_mul_of_one_le_left (by positivity) ha1
+  have hfloor := relative_natFloor_lower hlargeFloor
+  have hWraw : W = ⌊a * (d : ℝ) ^ 4 / L⌋₊ := by
+    dsimp [W, scaledShellWeight, a, shellA, L]
+    congr 1
+    push_cast
+    ring
+  have hWlower :
+      (d : ℝ) / (d + 1) * (a * (d : ℝ) ^ 4 / L) ≤ (W : ℝ) := by
+    simpa [hWraw] using hfloor
+  have hWpos : 0 < (W : ℝ) := by
+    have hleftPos :
+        0 < (d : ℝ) / (d + 1) * (a * (d : ℝ) ^ 4 / L) := by
+      positivity
+    exact hleftPos.trans_le hWlower
+  have hrle : (r : ℝ) ≤ (d : ℝ) := by
+    dsimp [r]
+    exact_mod_cast Nat.sub_le d 1
+  have htri : ((d * (d - 1) / 2 : ℕ) : ℝ) ≤ (d : ℝ) ^ 2 / 2 := by
+    calc
+      ((d * (d - 1) / 2 : ℕ) : ℝ) ≤
+          ((d * (d - 1) : ℕ) : ℝ) / (2 : ℝ) := Nat.cast_div_le
+      _ ≤ (d : ℝ) ^ 2 / 2 := by
+        apply div_le_div_of_nonneg_right _ (by norm_num)
+        push_cast
+        rw [Nat.cast_sub (by omega : 1 ≤ d)]
+        nlinarith
+  have hN : (N : ℝ) ≤ (d : ℝ) ^ 3 + (d : ℝ) ^ 2 / 2 := by
+    dsimp [N]
+    push_cast
+    convert add_le_add_left htri ((d : ℝ) ^ 3) using 1 <;> ring_nf
+  have hRN : (r : ℝ) * (N : ℝ) ≤
+      (d : ℝ) ^ 4 + (d : ℝ) ^ 3 / 2 := by
+    calc
+      (r : ℝ) * (N : ℝ) ≤
+          (d : ℝ) * ((d : ℝ) ^ 3 + (d : ℝ) ^ 2 / 2) := by gcongr
+      _ = (d : ℝ) ^ 4 + (d : ℝ) ^ 3 / 2 := by ring
+  have hInv : (1 : ℝ) / (d : ℝ) ≤ a / L := by
+    rw [div_le_div_iff₀ hdR hLpos]
+    calc
+      1 * L ≤ 1 * (d : ℝ) := by simpa using hLle
+      _ ≤ a * (d : ℝ) := by gcongr
+  have hsufficient :
+      (d : ℝ) ^ 4 + (d : ℝ) ^ 3 / 2 ≤
+        (e * L + 2) *
+          ((d : ℝ) / (d + 1) * (a * (d : ℝ) ^ 4 / L)) := by
+    calc
+      (d : ℝ) ^ 4 + (d : ℝ) ^ 3 / 2 ≤
+          (d : ℝ) ^ 4 * ((d : ℝ) / (d + 1)) *
+            (1 + 2 * ((1 : ℝ) / (d : ℝ))) := by
+        field_simp
+        nlinarith [sq_nonneg ((d : ℝ) - 1)]
+      _ ≤ (d : ℝ) ^ 4 * ((d : ℝ) / (d + 1)) *
+            (1 + 2 * (a / L)) := by gcongr
+      _ = (e * L + 2) *
+          ((d : ℝ) / (d + 1) * (a * (d : ℝ) ^ 4 / L)) := by
+        have hae : a * e = 1 := by simpa [mul_comm] using hea
+        field_simp [ha.ne']
+        calc
+          L + 2 * a = L * (a * e) + 2 * a := by simp [hae]
+          _ = a * (L * e + 2) := by ring
+  have hscaled : (r : ℝ) * (N : ℝ) ≤ (e * L + 2) * (W : ℝ) := by
+    exact hRN.trans (hsufficient.trans
+      (mul_le_mul_of_nonneg_left hWlower (by positivity)))
+  have hu : (r : ℝ) * (N : ℝ) / (W : ℝ) ≤
+      e * Real.log (d : ℝ) + 3 := by
+    rw [div_le_iff₀ hWpos]
+    calc
+      (r : ℝ) * (N : ℝ) ≤ (e * L + 2) * (W : ℝ) := hscaled
+      _ ≤ (e * Real.log (d : ℝ) + 3) * (W : ℝ) := by
+        apply mul_le_mul_of_nonneg_right _ hWpos.le
+        dsimp [L]
+        nlinarith [heOne]
+  have hpRatio :
+      ((W + N : ℕ) : ℝ) ^ r / (W : ℝ) ^ r ≤
+        Real.exp (e * Real.log (d : ℝ) + 3) := by
+    have hbase : ((W + N : ℕ) : ℝ) / (W : ℝ) =
+        1 + (N : ℝ) / (W : ℝ) := by
+      push_cast
+      field_simp
+    rw [← div_pow, hbase]
+    calc
+      (1 + (N : ℝ) / (W : ℝ)) ^ r ≤
+          (Real.exp ((N : ℝ) / (W : ℝ))) ^ r := by
+        gcongr
+        simpa [add_comm] using Real.add_one_le_exp ((N : ℝ) / (W : ℝ))
+      _ = Real.exp ((r : ℝ) * (N : ℝ) / (W : ℝ)) := by
+        rw [← Real.exp_nat_mul]
+        congr 1
+        ring
+      _ ≤ Real.exp (e * Real.log (d : ℝ) + 3) :=
+        Real.exp_le_exp.mpr hu
+  have hratioReal :
+      (2 : ℝ) * (((W + N : ℕ) : ℝ) ^ r / (W : ℝ) ^ r) ≤
+        (2 * Real.exp 3) * (d : ℝ) ^ e := by
+    calc
+      (2 : ℝ) * (((W + N : ℕ) : ℝ) ^ r / (W : ℝ) ^ r) ≤
+          2 * Real.exp (e * Real.log (d : ℝ) + 3) := by gcongr
+      _ = (2 * Real.exp 3) * (d : ℝ) ^ e := by
+        have hrpow : Real.exp (e * Real.log (d : ℝ)) =
+            (d : ℝ) ^ e := by
+          rw [Real.rpow_def_of_pos hdR]
+          congr 1
+          ring
+        rw [Real.exp_add, hrpow]
+        ring
+  have hceil : (2 * Real.exp 3) * (d : ℝ) ^ e ≤
+      (optimalScaledShellFactor θ d : ℝ) := by
+    exact Nat.le_ceil _
+  have hcrossReal :
+      (2 : ℝ) * (((W + N : ℕ) : ℝ) ^ r) ≤
+        (optimalScaledShellFactor θ d : ℝ) * (W : ℝ) ^ r := by
+    have hpow : 0 < (W : ℝ) ^ r := by positivity
+    rw [← div_le_iff₀ hpow]
+    calc
+      (2 : ℝ) * ((W + N : ℕ) : ℝ) ^ r / (W : ℝ) ^ r =
+          2 * (((W + N : ℕ) : ℝ) ^ r / (W : ℝ) ^ r) := by ring
+      _ ≤ (2 * Real.exp 3) * (d : ℝ) ^ e := hratioReal
+      _ ≤ (optimalScaledShellFactor θ d : ℝ) := by
+        simpa [e, optimalScaledShellFactor] using hceil
+  dsimp [W, r, N] at hcrossReal ⊢
+  have hnat :
+      2 * (scaledShellWeight θ d +
+          (d ^ 3 + d * (d - 1) / 2)) ^ (d - 1) ≤
+        optimalScaledShellFactor θ d *
+          scaledShellWeight θ d ^ (d - 1) := by
+    exact_mod_cast hcrossReal
+  simpa [Nat.add_assoc] using hnat
+
 /-! ## Eventual rounded estimates -/
 
 private theorem tendsto_one_add_log_div_natCast :
@@ -428,6 +630,67 @@ theorem scaledShellFactor_pos
     0 < scaledShellFactor θ d := by
   rw [scaledShellFactor, Nat.ceil_pos]
   exact Real.rpow_pos_of_pos (by exact_mod_cast hd) _
+
+/-- The sharp rounded shell factor is positive at every positive derivative
+order. -/
+theorem optimalScaledShellFactor_pos
+    {θ : ℝ} {d : ℕ} (hd : 0 < d) :
+    0 < optimalScaledShellFactor θ d := by
+  rw [optimalScaledShellFactor, Nat.ceil_pos]
+  positivity
+
+/-- The ceiling in the sharp factor costs only an additive `1`, which is
+absorbed here into the explicit leading constant. -/
+theorem optimalScaledShellFactor_cast_le_const_mul_rpow
+    {θ : ℝ} (hθ : 0 < θ)
+    {d : ℕ} (hd : 1 ≤ d) :
+    (optimalScaledShellFactor θ d : ℝ) ≤
+      (2 * Real.exp 3 + 1) *
+        (d : ℝ) ^ optimalScaledShellExponent θ := by
+  have he : 0 ≤ optimalScaledShellExponent θ := by
+    unfold optimalScaledShellExponent
+    positivity
+  have hdR : (1 : ℝ) ≤ d := by exact_mod_cast hd
+  have hpow : 1 ≤ (d : ℝ) ^ optimalScaledShellExponent θ :=
+    Real.one_le_rpow hdR he
+  have hnonneg :
+      0 ≤ (2 * Real.exp 3) *
+        (d : ℝ) ^ optimalScaledShellExponent θ := by positivity
+  have hceil : (optimalScaledShellFactor θ d : ℝ) <
+      (2 * Real.exp 3) *
+          (d : ℝ) ^ optimalScaledShellExponent θ + 1 := by
+    exact Nat.ceil_lt_add_one hnonneg
+  nlinarith [Real.exp_pos 3]
+
+/-- The sharp constant-times-power factor is eventually no larger than the
+older slack-power factor.  This compatibility lemma lets the already-proved
+rank threshold transfer without weakening the new operative bound. -/
+theorem eventually_optimalScaledShellFactor_le_scaledShellFactor
+    {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1) :
+    ∀ᶠ d : ℕ in atTop,
+      optimalScaledShellFactor θ d ≤ scaledShellFactor θ d := by
+  have heq : optimalScaledShellExponent θ = shellAInv θ := by
+    unfold optimalScaledShellExponent shellAInv shellA
+    field_simp [ne_of_gt (by linarith : 0 < 2 + θ)]
+  have hgap : 0 < shellGap θ := shellGap_pos hθ hθ₁
+  have htend : Tendsto (fun d : ℕ ↦ (d : ℝ) ^ shellGap θ)
+      atTop atTop :=
+    (tendsto_rpow_atTop hgap).comp tendsto_natCast_atTop_atTop
+  have hlarge : ∀ᶠ d : ℕ in atTop,
+      2 * Real.exp 3 ≤ (d : ℝ) ^ shellGap θ :=
+    htend.eventually (eventually_ge_atTop _)
+  filter_upwards [eventually_ge_atTop (1 : ℕ), hlarge] with d hd hdlarge
+  apply Nat.ceil_mono
+  have hdR : 0 < (d : ℝ) := by exact_mod_cast (show 0 < d by omega)
+  have hexponent : scaledShellExponent θ =
+      optimalScaledShellExponent θ + shellGap θ := by
+    rw [heq]
+    unfold shellGap
+    ring
+  rw [hexponent, Real.rpow_add hdR]
+  simpa [mul_comm] using
+    (mul_le_mul_of_nonneg_left hdlarge
+      (Real.rpow_nonneg hdR.le (optimalScaledShellExponent θ)))
 
 set_option maxHeartbeats 500000 in
 /-- For fixed `0 < θ < 1`, the two explicit hypotheses of
@@ -720,6 +983,37 @@ theorem eventually_scaledShell_discreteHypotheses
       hcoefficient hbadLog
   · exact shellRatioEstimate hθ hθ₁ hd hWlower hnumerator hratioLog
 
+/-- Sharp version of the eventual discrete shell hypotheses.  The bad-tuple
+estimate is unchanged; the shell ratio now uses its limiting power
+`2/(2+θ)` with no exponent slack. -/
+theorem eventually_optimalScaledShell_discreteHypotheses
+    {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1) :
+    ∀ᶠ d : ℕ in atTop,
+      2 * ((d - 1) *
+          (scaledShellWeight θ d - (scaledShellDegree θ d + 1) +
+            (d - 1)) ^ (d - 1)) ≤
+          scaledShellWeight θ d ^ (d - 1) ∧
+      2 * (scaledShellWeight θ d + d ^ 3 + d * (d - 1) / 2) ^ (d - 1) ≤
+          optimalScaledShellFactor θ d *
+            scaledShellWeight θ d ^ (d - 1) := by
+  filter_upwards [eventually_scaledShell_discreteHypotheses hθ hθ₁,
+      eventually_ge_atTop (2 : ℕ)] with d hold hd
+  exact ⟨hold.1, optimalShellRatioEstimate hθ hθ₁ hd⟩
+
+/-- Natural-number threshold for the sharp shell hypotheses. -/
+theorem exists_optimalScaledShellThreshold
+    {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1) :
+    ∃ d₀ : ℕ, ∀ d : ℕ, d₀ ≤ d →
+      2 * ((d - 1) *
+          (scaledShellWeight θ d - (scaledShellDegree θ d + 1) +
+            (d - 1)) ^ (d - 1)) ≤
+          scaledShellWeight θ d ^ (d - 1) ∧
+      2 * (scaledShellWeight θ d + d ^ 3 + d * (d - 1) / 2) ^ (d - 1) ≤
+          optimalScaledShellFactor θ d *
+            scaledShellWeight θ d ^ (d - 1) :=
+  eventually_atTop.mp
+    (eventually_optimalScaledShell_discreteHypotheses hθ hθ₁)
+
 /-- An ordinary natural threshold extracted from the eventual theorem. -/
 theorem exists_scaledShellThreshold
     {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1) :
@@ -752,6 +1046,39 @@ theorem scaledShell_cardinality_bound
   exact scaledExponentCount_shell_le_mul_goodScaledExponentCount
     d (scaledShellWeight θ d) (scaledShellDegree θ d) (d ^ 3)
       (scaledShellFactor θ d) hbad hratio
+
+/-- Cardinality comparison with the sharp constant-times-power shell
+factor. -/
+theorem optimalScaledShell_cardinality_bound
+    {θ : ℝ} {d : ℕ}
+    (hbad :
+      2 * ((d - 1) *
+          (scaledShellWeight θ d - (scaledShellDegree θ d + 1) +
+            (d - 1)) ^ (d - 1)) ≤
+        scaledShellWeight θ d ^ (d - 1))
+    (hratio :
+      2 * (scaledShellWeight θ d + d ^ 3 + d * (d - 1) / 2) ^ (d - 1) ≤
+        optimalScaledShellFactor θ d *
+          scaledShellWeight θ d ^ (d - 1)) :
+    scaledExponentCount d (scaledShellWeight θ d + d ^ 3) ≤
+      optimalScaledShellFactor θ d *
+        goodScaledExponentCount d
+          (scaledShellWeight θ d) (scaledShellDegree θ d) := by
+  exact scaledExponentCount_shell_le_mul_goodScaledExponentCount
+    d (scaledShellWeight θ d) (scaledShellDegree θ d) (d ^ 3)
+      (optimalScaledShellFactor θ d) hbad hratio
+
+/-- The sharp scaled-lattice cardinality comparison holds eventually. -/
+theorem eventually_optimalScaledShell_cardinality_bound
+    {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1) :
+    ∀ᶠ d : ℕ in atTop,
+      scaledExponentCount d (scaledShellWeight θ d + d ^ 3) ≤
+        optimalScaledShellFactor θ d *
+          goodScaledExponentCount d
+            (scaledShellWeight θ d) (scaledShellDegree θ d) := by
+  filter_upwards
+    [eventually_optimalScaledShell_discreteHypotheses hθ hθ₁] with d hd
+  exact optimalScaledShell_cardinality_bound hd.1 hd.2
 
 /-- The final scaled-lattice cardinality comparison holds eventually in the
 derivative order. -/

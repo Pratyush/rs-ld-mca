@@ -35,6 +35,13 @@ assembly—a factor `288` improvement.  This materially reduces the formal
 large-order threshold, although it does not by itself make that threshold
 practical at cryptographic block lengths.
 
+The shell-ratio estimate is also sharpened from the slack power
+`d^((5-θ)/(5+θ))` to the explicit bound
+`(2*exp(3))*d^(2/(2+θ))`.  Consequently the rank-saving exponent improves
+from `2θ/(5+θ)` to `θ/(2+θ)`.  This is the limiting exponent of the present
+shell argument; the main all-rate theorem uses the new rounded factor
+directly, including its exact finite-order ceiling.
+
 The only project-specific assumptions are the cardinality and algorithmic
 clauses of Kopparty's Theorem 4.3, both declared and documented in
 `RSListDecoding/Assumptions.lean`. The kernel dependency checks are in
