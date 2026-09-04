@@ -1,5 +1,6 @@
 import Mathlib.Analysis.SpecialFunctions.Pow.Real
 import Mathlib.Analysis.SpecialFunctions.Log.Basic
+import RSListDecoding.Defs.DifferentialEquation
 
 /-!
 # Integer parameters in the combinatorial theorem
@@ -93,18 +94,27 @@ noncomputable def optimizedInterpolationSimplexWidthAt
 noncomputable def interpolationBoxWidth (ε θ : ℝ) : ℕ :=
   ⌊θ * (multiplicity ε θ : ℝ) / 16⌋₊
 
-/-- The clean exact public list-size bound extracted from the manuscript's
-root-counting input. -/
+/-- Public list-size bound from the refined quadratic-extension root count. -/
 def publicListBoundAt (q d : ℕ) : ℕ :=
-  q ^ (4 * d + 6)
+  q ^ (2 * d + 4)
 
-/-- Exact root-counting bound for the free-order theorem, before absorbing
-the two polynomial prefactors into powers of the field size. -/
+/-- Exact refined root-counting bound for the free-order theorem, before
+absorbing the two polynomial prefactors into powers of the field size. -/
 noncomputable def sharpListBoundAt
     (q d : ℕ) (ε θ : ℝ) (n : ℕ) : ℕ :=
-  interpolationDegreeBudgetAt d ε θ n * (d + 1) * q ^ (4 * d + 4)
+  interpolationDegreeBudgetAt d ε θ n * rootCountGeometricFactor q 2 d
+
+/-- Stronger exact list bound when the interpolation weighted degree is
+strictly below the base-field size. -/
+noncomputable def baseFieldSharpListBoundAt
+    (q d : ℕ) (ε θ : ℝ) (n : ℕ) : ℕ :=
+  interpolationDegreeBudgetAt d ε θ n * rootCountGeometricFactor q 1 d
+
+/-- Absorbed public form of the base-field list bound. -/
+def baseFieldPublicListBoundAt (q d : ℕ) : ℕ :=
+  q ^ (d + 3)
 
 noncomputable def publicListBound (q : ℕ) (ε θ : ℝ) : ℕ :=
-  q ^ (4 * derivativeOrder ε θ + 6)
+  q ^ (2 * derivativeOrder ε θ + 4)
 
 end RSListDecoding

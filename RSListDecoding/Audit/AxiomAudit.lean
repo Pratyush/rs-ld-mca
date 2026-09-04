@@ -22,7 +22,7 @@ info: 'RSListDecoding.CombinatorialMainStatement' depends on axioms: [propext, C
 info: 'RSListDecoding.combinatorial_main' depends on axioms: [propext,
  Classical.choice,
  Quot.sound,
- RSListDecoding.kopparty_theorem_4_3_cardinality]
+ RSListDecoding.kopparty_degree_lt_characteristic_cardinality]
 -/
 #guard_msgs in
 #print axioms RSListDecoding.combinatorial_main
@@ -39,7 +39,7 @@ info: 'RSListDecoding.exists_scoped_ambient_explainer' depends on axioms: [prope
 info: 'RSListDecoding.differentialSolutions_card_le_public' depends on axioms: [propext,
  Classical.choice,
  Quot.sound,
- RSListDecoding.kopparty_theorem_4_3_cardinality]
+ RSListDecoding.kopparty_degree_lt_characteristic_cardinality]
 -/
 #guard_msgs in
 #print axioms RSListDecoding.differentialSolutions_card_le_public
@@ -77,8 +77,8 @@ info: 'RSListDecoding.decoderProgram_result_eq_decodingList' depends on axioms: 
 info: 'RSListDecoding.algorithmic_main' depends on axioms: [propext,
  Classical.choice,
  Quot.sound,
- RSListDecoding.kopparty_theorem_4_3_algorithm,
- RSListDecoding.kopparty_theorem_4_3_cardinality]
+ RSListDecoding.kopparty_degree_lt_characteristic_cardinality,
+ RSListDecoding.kopparty_theorem_4_3_algorithm]
 -/
 #guard_msgs in
 #print axioms RSListDecoding.algorithmic_main
@@ -109,7 +109,7 @@ info: 'RSListDecoding.AllRateCombinatorialMainStatement' depends on axioms: [pro
 info: 'RSListDecoding.all_rate_combinatorial_main' depends on axioms: [propext,
  Classical.choice,
  Quot.sound,
- RSListDecoding.kopparty_theorem_4_3_cardinality]
+ RSListDecoding.kopparty_degree_lt_characteristic_cardinality]
 -/
 #guard_msgs in
 #print axioms RSListDecoding.all_rate_combinatorial_main
@@ -124,8 +124,8 @@ info: 'RSListDecoding.AllRateAlgorithmicMainStatement' depends on axioms: [prope
 info: 'RSListDecoding.all_rate_algorithmic_main' depends on axioms: [propext,
  Classical.choice,
  Quot.sound,
- RSListDecoding.kopparty_theorem_4_3_algorithm,
- RSListDecoding.kopparty_theorem_4_3_cardinality]
+ RSListDecoding.kopparty_degree_lt_characteristic_cardinality,
+ RSListDecoding.kopparty_theorem_4_3_algorithm]
 -/
 #guard_msgs in
 #print axioms RSListDecoding.all_rate_algorithmic_main
@@ -192,7 +192,16 @@ info: 'RSListDecoding.total_coupledContactEnvelope_finrank_lt_interpolationSpace
 info: 'RSListDecoding.quadratic_adaptive_combinatorial_main' depends on axioms: [propext,
  Classical.choice,
  Quot.sound,
- RSListDecoding.kopparty_theorem_4_3_cardinality]
+ RSListDecoding.kopparty_degree_lt_characteristic_cardinality]
 -/
 #guard_msgs in
 #print axioms RSListDecoding.quadratic_adaptive_combinatorial_main
+
+/--
+info: 'RSListDecoding.quadratic_adaptive_base_field_combinatorial_main' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound,
+ RSListDecoding.kopparty_degree_lt_characteristic_cardinality]
+-/
+#guard_msgs in
+#print axioms RSListDecoding.quadratic_adaptive_base_field_combinatorial_main

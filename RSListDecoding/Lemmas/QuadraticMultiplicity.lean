@@ -622,7 +622,7 @@ theorem quadratic_adaptive_listDecodable_of_exact_sum
         quadraticAdaptiveGlobalCount a c d A K B)
     (alpha : Fin n → ZMod q) (halpha : Function.Injective alpha) :
     IsListDecodableAtAgreement (k := k) hq.ne_zero alpha A
-      (B * (d + 1) * q ^ (4 * d + 4)) := by
+      (B * rootCountGeometricFactor q 2 d) := by
   letI : Fact (Nat.Prime q) := ⟨hq⟩
   let m := quadraticMultiplicityAt c d
   let W := quadraticShellWeight a c d
@@ -668,6 +668,71 @@ theorem quadratic_adaptive_listDecodable_of_exact_sum
   exact exists_nonzero_interpolant_satisfying_constraints_coupled
     hd hdim alpha y
 
+/-- Base-field strengthening of `quadratic_adaptive_listDecodable_of_exact_sum`.
+When the interpolation weighted-degree budget is at most `q`, the refined
+root count avoids the quadratic extension and reduces the field exponent
+from `2d+2` to `d+1`. -/
+theorem quadratic_adaptive_listDecodable_baseField_of_exact_sum
+    {q c d n k A K B : ℕ} {a : ℝ}
+    (hq : Nat.Prime q) (hc : 0 < c) (hd : 0 < d)
+    (hdK : d < K) (hkK : k ≤ K)
+    (hKq : K ≤ q) (hB : 0 < B) (hBq : B < q)
+    (hMq : quadraticMultiplicityAt c d * A ≤ q)
+    (hdegreeBudget : quadraticShellDegree a c d ≤ B)
+    (hweightedBudget :
+      (K - 1) * quadraticShellDegree a c d ≤
+        quadraticMultiplicityAt c d * A)
+    (hsums :
+      n * quadraticCoupledLocalCount a c d <
+        quadraticAdaptiveGlobalCount a c d A K B)
+    (alpha : Fin n → ZMod q) (halpha : Function.Injective alpha) :
+    IsListDecodableAtAgreement (k := k) hq.ne_zero alpha A
+      (B * rootCountGeometricFactor q 1 d) := by
+  letI : Fact (Nat.Prime q) := ⟨hq⟩
+  let m := quadraticMultiplicityAt c d
+  let W := quadraticShellWeight a c d
+  let C := quadraticShellDegree a c d
+  let J : HigherJetExponent d → ℕ :=
+    adaptiveGlobalSlack m A K B
+  have hJ : ∀ e : ↥(goodHigherExponents d W C), J e.1 ≤ m :=
+    fun e => adaptiveGlobalSlack_le_m e.1
+  have hdegree : ∀ e : ↥(goodHigherExponents d W C),
+      higherJetDegree e.1 + J e.1 ≤ B := by
+    intro e
+    apply higherJetDegree_add_adaptiveGlobalSlack_le_degreeBudget
+    exact (mem_goodHigherExponents.mp e.2).2.trans hdegreeBudget
+  have hweighted : ∀ e : ↥(goodHigherExponents d W C),
+      (K - 1) * (higherJetDegree e.1 + J e.1) ≤ m * A := by
+    intro e
+    apply weighted_adaptiveGlobalSlack_le_budget (by omega)
+    exact (Nat.mul_le_mul_left (K - 1)
+      (mem_goodHigherExponents.mp e.2).2).trans hweightedBudget
+  have hdim :
+      n * Module.finrank (ZMod q)
+          (coupledContactEnvelopeSpace (R := ZMod q) (d := d) m W) <
+        Module.finrank (ZMod q)
+          (interpolationSpace q d m A K B W C) := by
+    apply total_coupledContactEnvelope_finrank_lt_interpolationSpace_adaptive
+      hd hJ hdegree hweighted
+    simpa [quadraticCoupledLocalCount, quadraticAdaptiveGlobalCount,
+      m, W, C, J] using hsums
+  have hA : 0 < A := by
+    by_contra hA
+    have hAz : A = 0 := Nat.eq_zero_of_not_pos hA
+    have hright : quadraticAdaptiveGlobalCount a c d A K B = 0 := by
+      simp [quadraticAdaptiveGlobalCount, adaptiveGlobalSlack, hAz]
+    rw [hright] at hsums
+    omega
+  have hmA : 0 < m * A :=
+    Nat.mul_pos (quadraticMultiplicityAt_pos hc hd) hA
+  apply isListDecodableAtAgreement_baseField_of_ambient_explainers_of_le_dimension
+    hq hdK hkK hKq hB hBq hMq alpha
+  intro y
+  apply exists_ambient_explainer_of_nonzero_interpolant
+    hq (Nat.zero_lt_of_lt hdK) hmA alpha halpha y
+  exact exists_nonzero_interpolant_satisfying_constraints_coupled
+    hd hdim alpha y
+
 /-- Public finite statement for the rounded quadratic construction.  It is
 phrased as an exact certificate theorem: the two explicitly computable
 weighted counts are compared directly. -/
@@ -684,13 +749,37 @@ def QuadraticAdaptiveCombinatorialStatement : Prop :=
         quadraticAdaptiveGlobalCount a c d A K B →
       ∀ alpha : Fin n → ZMod q, Function.Injective alpha →
         IsListDecodableAtAgreement (k := k) hq.ne_zero alpha A
-          (B * (d + 1) * q ^ (4 * d + 4))
+          (B * rootCountGeometricFactor q 2 d)
 
 theorem quadraticAdaptiveCombinatorialStatement_proved :
     QuadraticAdaptiveCombinatorialStatement := by
   intro a q c d n k A K B hq hc hd hdK hkK hKq hB hBq hMq
     hdegreeBudget hweightedBudget hsums alpha halpha
   exact quadratic_adaptive_listDecodable_of_exact_sum
+    hq hc hd hdK hkK hKq hB hBq hMq hdegreeBudget hweightedBudget
+      hsums alpha halpha
+
+/-- Public finite statement for the base-field list-size optimization. -/
+def QuadraticAdaptiveBaseFieldCombinatorialStatement : Prop :=
+  ∀ a : ℝ, ∀ q c d n k A K B : ℕ,
+    ∀ hq : Nat.Prime q,
+      0 < c → 0 < d → d < K → k ≤ K → K ≤ q →
+      0 < B → B < q →
+      quadraticMultiplicityAt c d * A ≤ q →
+      quadraticShellDegree a c d ≤ B →
+      (K - 1) * quadraticShellDegree a c d ≤
+        quadraticMultiplicityAt c d * A →
+      n * quadraticCoupledLocalCount a c d <
+        quadraticAdaptiveGlobalCount a c d A K B →
+      ∀ alpha : Fin n → ZMod q, Function.Injective alpha →
+        IsListDecodableAtAgreement (k := k) hq.ne_zero alpha A
+          (B * rootCountGeometricFactor q 1 d)
+
+theorem quadraticAdaptiveBaseFieldCombinatorialStatement_proved :
+    QuadraticAdaptiveBaseFieldCombinatorialStatement := by
+  intro a q c d n k A K B hq hc hd hdK hkK hKq hB hBq hMq
+    hdegreeBudget hweightedBudget hsums alpha halpha
+  exact quadratic_adaptive_listDecodable_baseField_of_exact_sum
     hq hc hd hdK hkK hKq hB hBq hMq hdegreeBudget hweightedBudget
       hsums alpha halpha
 

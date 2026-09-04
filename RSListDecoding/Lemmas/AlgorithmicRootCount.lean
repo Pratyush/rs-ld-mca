@@ -113,7 +113,7 @@ theorem ambientDifferentialRootProgram_card_le_public
     (hBq : B < q)
     (hweight : Q.weightedTotalDegree (jetWeight (r := d) (K - 1)) < q ^ 2) :
     (ambientDifferentialRootProgram hq hdK hB Q hQ hcoord hBq hweight).result.card ≤
-      q ^ (4 * d + 6) := by
+      q ^ (2 * d + 4) := by
   let input := ambientKoppartyRootInput hq hdK hB Q hQ hcoord hBq hweight
   let e := messageDegreeCapEquiv (q := q) (Nat.zero_lt_of_lt hdK)
   change ((kopparty_theorem_4_3_algorithm.solve input).result.map

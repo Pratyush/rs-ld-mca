@@ -4,7 +4,7 @@ import RSListDecoding.Lemmas.Subcode
 /-!
 # From explainer existence to list decodability
 
-This module isolates the final finite-set argument from the interpolation
+This file isolates the final finite-set argument from the interpolation
 construction.  Its input is exactly what interpolation must produce for each
 received word: one nonzero differential polynomial of controlled coordinate
 degrees and weighted degree that vanishes on every candidate message.
@@ -30,7 +30,7 @@ theorem isListDecodableAtAgreement_of_ambient_explainers
           differentialSpecialization Q
             (messagePolynomialAtDimension (Nat.zero_lt_of_lt hdK) p) = 0) :
     IsListDecodableAtAgreement (k := K) hq.ne_zero alpha A
-      (q ^ (4 * d + 6)) := by
+      (q ^ (2 * d + 4)) := by
   intro y
   obtain ⟨Q, hQ, hcoord, hweight, hsolves⟩ := hexplainer y
   exact decodingList_card_le_public_of_differentialEquation
@@ -54,7 +54,7 @@ theorem isListDecodableAtAgreement_of_ambient_explainers_of_le_dimension
           differentialSpecialization Q
             (messagePolynomialAtDimension (Nat.zero_lt_of_lt hdK) p) = 0) :
     IsListDecodableAtAgreement (k := k) hq.ne_zero alpha A
-      (q ^ (4 * d + 6)) := by
+      (q ^ (2 * d + 4)) := by
   apply isListDecodableAtAgreement_of_le_dimension hq.ne_zero hkK alpha
   exact isListDecodableAtAgreement_of_ambient_explainers
     hq hdK hKn hnq hB hBq hMq alpha hexplainer
@@ -74,11 +74,36 @@ theorem isListDecodableAtAgreement_sharp_of_ambient_explainers_of_le_dimension
           differentialSpecialization Q
             (messagePolynomialAtDimension (Nat.zero_lt_of_lt hdK) p) = 0) :
     IsListDecodableAtAgreement (k := k) hq.ne_zero alpha A
-      (B * (d + 1) * q ^ (4 * d + 4)) := by
+      (B * rootCountGeometricFactor q 2 d) := by
   apply isListDecodableAtAgreement_of_le_dimension hq.ne_zero hkK alpha
   intro y
   obtain ⟨Q, hQ, hcoord, hweight, hsolves⟩ := hexplainer y
   exact decodingList_card_le_sharp_of_differentialEquation
+    hq hdK hB hKq alpha y Q hQ hcoord hBq
+      (hweight.trans_le hMq) hsolves
+
+/-- Base-field version of the ambient-explainer reduction.  The stronger
+weighted-degree hypothesis eliminates the quadratic extension in the root
+count and halves the remaining field exponent. -/
+theorem isListDecodableAtAgreement_baseField_of_ambient_explainers_of_le_dimension
+    {n q d k K B A M : ℕ}
+    (hq : Nat.Prime q) (hdK : d < K) (hkK : k ≤ K)
+    (hKq : K ≤ q) (hB : 0 < B) (hBq : B < q) (hMq : M ≤ q)
+    (alpha : Fin n → ZMod q)
+    (hexplainer : ∀ y : Fin n → ZMod q,
+      ∃ Q : DifferentialPolynomial q d,
+        Q ≠ 0 ∧
+        (∀ j : Fin (d + 1), Q.degreeOf (some j) ≤ B) ∧
+        Q.weightedTotalDegree (jetWeight (r := d) (K - 1)) < M ∧
+        ∀ p ∈ decodingList (k := K) hq.ne_zero alpha y A,
+          differentialSpecialization Q
+            (messagePolynomialAtDimension (Nat.zero_lt_of_lt hdK) p) = 0) :
+    IsListDecodableAtAgreement (k := k) hq.ne_zero alpha A
+      (B * rootCountGeometricFactor q 1 d) := by
+  apply isListDecodableAtAgreement_of_le_dimension hq.ne_zero hkK alpha
+  intro y
+  obtain ⟨Q, hQ, hcoord, hweight, hsolves⟩ := hexplainer y
+  exact decodingList_card_le_baseField_of_differentialEquation
     hq hdK hB hKq alpha y Q hQ hcoord hBq
       (hweight.trans_le hMq) hsolves
 

@@ -20,9 +20,9 @@ example {q k : ℕ} (p : Message q k) (x : ZMod q) :
 /-- The agreement threshold is exactly `ceil(ε n)`. -/
 example (ε : ℝ) (n : ℕ) : agreementThreshold ε n = ⌈ε * n⌉₊ := rfl
 
-/-- The public list bound is exactly `q^(4d+6)`. -/
+/-- The refined public list bound is exactly `q^(2d+4)`. -/
 example (q : ℕ) (ε θ : ℝ) :
-    publicListBound q ε θ = q ^ (4 * derivativeOrder ε θ + 6) := rfl
+    publicListBound q ε θ = q ^ (2 * derivativeOrder ε θ + 4) := rfl
 
 /-- The scoped combinatorial list-decoding theorem. -/
 theorem combinatorial_main : CombinatorialMainStatement :=
@@ -46,5 +46,11 @@ and global weighted sums. -/
 theorem quadratic_adaptive_combinatorial_main :
     QuadraticAdaptiveCombinatorialStatement :=
   quadraticAdaptiveCombinatorialStatement_proved
+
+/-- The same rounded quadratic theorem with the sharper base-field list
+bound when the weighted-degree budget is at most `q`. -/
+theorem quadratic_adaptive_base_field_combinatorial_main :
+    QuadraticAdaptiveBaseFieldCombinatorialStatement :=
+  quadraticAdaptiveBaseFieldCombinatorialStatement_proved
 
 end RSListDecoding

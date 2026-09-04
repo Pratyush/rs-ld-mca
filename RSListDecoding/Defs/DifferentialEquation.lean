@@ -54,4 +54,9 @@ def differentialSolutions {q r : ℕ} (hq : q ≠ 0) (D : ℕ)
   exact Finset.univ.filter fun p =>
     differentialSpecialization Q (messagePolynomial p) = 0
 
+/-- Exact sum of the initial-jet search spaces at differential orders
+`0, ..., r` over a degree-`e` extension of a field of size `q`. -/
+def rootCountGeometricFactor (q e r : ℕ) : ℕ :=
+  ∑ j ∈ Finset.range (r + 1), q ^ (e * (j + 1))
+
 end RSListDecoding

@@ -5,8 +5,9 @@ import RSListDecoding.Lemmas.Parameters
 # Cardinality bounds for polynomial differential equations
 
 This module contains checked arithmetic specializations of the sole external
-root-counting input.  In the application the solution degree is `K-1 < q`, so
-the quotient `⌊(K-1)/q⌋` vanishes and Kopparty's bound has exponent `4d+4`.
+root-counting input.  In the application the solution degree is `K-1 < q`.
+The refined count therefore has exponent `2d+2` with the quadratic extension,
+and exponent `d+1` whenever the weighted degree is already below `q`.
 -/
 
 namespace RSListDecoding
@@ -35,9 +36,8 @@ theorem mem_differentialSolutions {q r D : ℕ} (hq : q ≠ 0)
   letI : NeZero q := ⟨hq⟩
   simp [differentialSolutions]
 
-/-- Kopparty's cardinality bound when the solution degree is smaller than the
-field size.  The source hypothesis is the inclusive individual-degree bound
-`degreeOf (some j) Q ≤ t`; no strict-degree reinterpretation occurs here. -/
+/-- Refined Kopparty cardinality bound using the quadratic extension when the
+solution degree is smaller than the characteristic. -/
 theorem kopparty_cardinality_of_degree_lt_field {q r D t : ℕ}
     (hq : Nat.Prime q) (hrD : r ≤ D) (ht : 0 < t)
     (Q : DifferentialPolynomial q r) (hQ : Q ≠ 0)
@@ -46,9 +46,26 @@ theorem kopparty_cardinality_of_degree_lt_field {q r D t : ℕ}
     (hweight : Q.weightedTotalDegree (jetWeight (r := r) D) < q ^ 2)
     (hDq : D < q) :
     (differentialSolutions hq.ne_zero D Q).card ≤
-      t * (r + 1) * q ^ (4 * r + 4) := by
-  simpa [Nat.div_eq_of_lt hDq] using
-    kopparty_theorem_4_3_cardinality hq hrD ht Q hQ hcoord htq hweight
+      t * rootCountGeometricFactor q 2 r := by
+  exact kopparty_degree_lt_characteristic_cardinality
+    hq hrD hDq ht (by omega : 0 < 2) Q hQ hcoord htq hweight
+
+/-- If the weighted degree is below the base-field size, the same refined
+argument runs over `ZMod q` itself and pays only `q^(r+1)`. -/
+theorem kopparty_cardinality_of_weight_lt_field {q r D t : ℕ}
+    (hq : Nat.Prime q) (hrD : r ≤ D) (ht : 0 < t)
+    (Q : DifferentialPolynomial q r) (hQ : Q ≠ 0)
+    (hcoord : ∀ j : Fin (r + 1), Q.degreeOf (some j) ≤ t)
+    (htq : t < q)
+    (hweight : Q.weightedTotalDegree (jetWeight (r := r) D) < q)
+    (hDq : D < q) :
+    (differentialSolutions hq.ne_zero D Q).card ≤
+      t * rootCountGeometricFactor q 1 r := by
+  have hweight' :
+      Q.weightedTotalDegree (jetWeight (r := r) D) < q ^ 1 := by
+    simpa using hweight
+  exact kopparty_degree_lt_characteristic_cardinality
+    hq hrD hDq ht (by omega : 0 < 1) Q hQ hcoord htq hweight'
 
 /-- The sharp internal bound used by the combinatorial proof.  Here the
 solution polynomials have degree at most `K-1`, the derivative depth is `d`,
@@ -60,14 +77,28 @@ theorem differentialSolutions_card_le_sharp {q d K B : ℕ}
     (hBq : B < q) (hKq : K ≤ q)
     (hweight : Q.weightedTotalDegree (jetWeight (r := d) (K - 1)) < q ^ 2) :
     (differentialSolutions hq.ne_zero (K - 1) Q).card ≤
-      B * (d + 1) * q ^ (4 * d + 4) := by
+      B * rootCountGeometricFactor q 2 d := by
   have hdD : d ≤ K - 1 := by omega
   have hDq : K - 1 < q := by omega
   exact kopparty_cardinality_of_degree_lt_field
     hq hdD hB Q hQ hcoord hBq hweight hDq
 
+/-- Base-field version of the sharp internal bound. -/
+theorem differentialSolutions_card_le_baseField {q d K B : ℕ}
+    (hq : Nat.Prime q) (hdK : d < K) (hB : 0 < B)
+    (Q : DifferentialPolynomial q d) (hQ : Q ≠ 0)
+    (hcoord : ∀ j : Fin (d + 1), Q.degreeOf (some j) ≤ B)
+    (hBq : B < q) (hKq : K ≤ q)
+    (hweight : Q.weightedTotalDegree (jetWeight (r := d) (K - 1)) < q) :
+    (differentialSolutions hq.ne_zero (K - 1) Q).card ≤
+      B * rootCountGeometricFactor q 1 d := by
+  have hdD : d ≤ K - 1 := by omega
+  have hDq : K - 1 < q := by omega
+  exact kopparty_cardinality_of_weight_lt_field
+    hq hdD hB Q hQ hcoord hBq hweight hDq
+
 /-- The sharp differential-equation count fits into the public
-`q^(4d+6)` list bound under the scope's ambient-dimension and field-size
+`q^(2d+4)` list bound under the scope's ambient-dimension and field-size
 hypotheses. -/
 theorem differentialSolutions_card_le_public {q d K n B : ℕ}
     (hq : Nat.Prime q) (hdK : d < K) (hKn : K < n) (hnq : n ≤ q)
@@ -76,10 +107,25 @@ theorem differentialSolutions_card_le_public {q d K n B : ℕ}
     (hcoord : ∀ j : Fin (d + 1), Q.degreeOf (some j) ≤ B)
     (hBq : B < q)
     (hweight : Q.weightedTotalDegree (jetWeight (r := d) (K - 1)) < q ^ 2) :
-    (differentialSolutions hq.ne_zero (K - 1) Q).card ≤ q ^ (4 * d + 6) := by
+    (differentialSolutions hq.ne_zero (K - 1) Q).card ≤ q ^ (2 * d + 4) := by
   have hKq : K ≤ q := hKn.le.trans hnq
   exact (differentialSolutions_card_le_sharp
     hq hdK hB Q hQ hcoord hBq hKq hweight).trans
       (sharpRootCount_le_publicBound hdK hKn hnq hBq)
+
+/-- With weighted degree below `q`, both the extension and its extra exponent
+disappear; the polynomial prefactors absorb into `q²`. -/
+theorem differentialSolutions_card_le_baseField_public {q d K n B : ℕ}
+    (hq : Nat.Prime q) (hdK : d < K) (hKn : K < n) (hnq : n ≤ q)
+    (hB : 0 < B)
+    (Q : DifferentialPolynomial q d) (hQ : Q ≠ 0)
+    (hcoord : ∀ j : Fin (d + 1), Q.degreeOf (some j) ≤ B)
+    (hBq : B < q)
+    (hweight : Q.weightedTotalDegree (jetWeight (r := d) (K - 1)) < q) :
+    (differentialSolutions hq.ne_zero (K - 1) Q).card ≤ q ^ (d + 3) := by
+  have hKq : K ≤ q := hKn.le.trans hnq
+  exact (differentialSolutions_card_le_baseField
+    hq hdK hB Q hQ hcoord hBq hKq hweight).trans
+      (baseFieldRootCount_le_publicBound hdK hKn hnq hBq)
 
 end RSListDecoding

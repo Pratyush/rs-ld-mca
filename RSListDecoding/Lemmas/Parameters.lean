@@ -243,19 +243,96 @@ theorem codeDimension_le_blockLength {ε θ : ℝ} {n k : ℕ}
     k ≤ n :=
   hkK.trans <| (ambientDimension_lt_blockLength hε hε₁ hθ hθ₁ hn).le
 
-/-- The two prefactors in the sharp root count fit into the two spare powers
-of `q` in the public list bound. -/
+/-- The exact geometric initial-jet count is bounded by replacing every level
+with the largest one. -/
+theorem rootCountGeometricFactor_le_top_mul
+    {q e r : ℕ} (hq : 0 < q) :
+    rootCountGeometricFactor q e r ≤
+      (r + 1) * q ^ (e * (r + 1)) := by
+  unfold rootCountGeometricFactor
+  calc
+    ∑ j ∈ Finset.range (r + 1), q ^ (e * (j + 1)) ≤
+        ∑ _j ∈ Finset.range (r + 1), q ^ (e * (r + 1)) := by
+      apply Finset.sum_le_sum
+      intro j hj
+      simp only [Finset.mem_range] at hj
+      exact Nat.pow_le_pow_right hq
+        (Nat.mul_le_mul_left e (by omega))
+    _ = (r + 1) * q ^ (e * (r + 1)) := by simp
+
+/-- A geometric sum with ratio at least two is strictly smaller than twice
+its largest term. -/
+theorem shiftedGeomSum_lt_two_mul_pow
+    {x r : ℕ} (hx : 2 ≤ x) :
+    (∑ j ∈ Finset.range (r + 1), x ^ (j + 1)) <
+      2 * x ^ (r + 1) := by
+  induction r with
+  | zero => simp; omega
+  | succ r ih =>
+      rw [show r + 1 + 1 = (r + 1) + 1 by omega,
+        Finset.sum_range_succ]
+      have hscale : 2 * x ^ (r + 1) ≤ x ^ ((r + 1) + 1) := by
+        calc
+          2 * x ^ (r + 1) ≤ x * x ^ (r + 1) :=
+            Nat.mul_le_mul_right _ hx
+          _ = x ^ ((r + 1) + 1) := (pow_succ' x (r + 1)).symm
+      omega
+
+/-- Consequently the exact root-count factor has no linear-in-order
+prefactor: it is less than twice its final term. -/
+theorem rootCountGeometricFactor_lt_two_mul_top
+    {q e r : ℕ} (hq : 2 ≤ q) (he : 0 < e) :
+    rootCountGeometricFactor q e r <
+      2 * q ^ (e * (r + 1)) := by
+  have hqpos : 0 < q := by omega
+  have hqpow : q ≤ q ^ e := by
+    calc
+      q = q ^ 1 := by simp
+      _ ≤ q ^ e := Nat.pow_le_pow_right hqpos he
+  have hratio : 2 ≤ q ^ e := hq.trans hqpow
+  simpa only [rootCountGeometricFactor, pow_mul] using
+    (shiftedGeomSum_lt_two_mul_pow (x := q ^ e) (r := r) hratio)
+
+/-- The polynomial prefactor and exact quadratic-extension geometric sum fit
+into the two spare powers of `q` in the public list bound. -/
 theorem sharpRootCount_le_publicBound {d K n q B : ℕ}
     (hdK : d < K) (hKn : K < n) (hnq : n ≤ q) (hBq : B < q) :
-    B * (d + 1) * q ^ (4 * d + 4) ≤ q ^ (4 * d + 6) := by
+    B * rootCountGeometricFactor q 2 d ≤ q ^ (2 * d + 4) := by
   have hdq : d + 1 ≤ q := (Nat.succ_le_iff.mpr hdK).trans (hKn.le.trans hnq)
+  have hq : 0 < q := by omega
   calc
-    B * (d + 1) * q ^ (4 * d + 4)
-        ≤ (q * q) * q ^ (4 * d + 4) :=
+    B * rootCountGeometricFactor q 2 d
+        ≤ B * ((d + 1) * q ^ (2 * (d + 1))) :=
+      Nat.mul_le_mul_left B (rootCountGeometricFactor_le_top_mul hq)
+    _ = B * (d + 1) * q ^ (2 * d + 2) := by
+      rw [show 2 * (d + 1) = 2 * d + 2 by omega]
+      simp [mul_assoc]
+    _
+        ≤ (q * q) * q ^ (2 * d + 2) :=
       Nat.mul_le_mul_right _ (Nat.mul_le_mul hBq.le hdq)
-    _ = q ^ 2 * q ^ (4 * d + 4) := by rw [pow_two]
-    _ = q ^ (2 + (4 * d + 4)) := (pow_add q 2 (4 * d + 4)).symm
-    _ = q ^ (4 * d + 6) := by
+    _ = q ^ 2 * q ^ (2 * d + 2) := by rw [pow_two]
+    _ = q ^ (2 + (2 * d + 2)) := (pow_add q 2 (2 * d + 2)).symm
+    _ = q ^ (2 * d + 4) := by
+      congr 1
+      omega
+
+/-- Absorb the two polynomial prefactors in the base-field root count. -/
+theorem baseFieldRootCount_le_publicBound {d K n q B : ℕ}
+    (hdK : d < K) (hKn : K < n) (hnq : n ≤ q) (hBq : B < q) :
+    B * rootCountGeometricFactor q 1 d ≤ q ^ (d + 3) := by
+  have hdq : d + 1 ≤ q := (Nat.succ_le_iff.mpr hdK).trans (hKn.le.trans hnq)
+  have hq : 0 < q := by omega
+  calc
+    B * rootCountGeometricFactor q 1 d
+        ≤ B * ((d + 1) * q ^ (1 * (d + 1))) :=
+      Nat.mul_le_mul_left B (rootCountGeometricFactor_le_top_mul hq)
+    _ = B * (d + 1) * q ^ (d + 1) := by simp [mul_assoc]
+    _
+        ≤ (q * q) * q ^ (d + 1) :=
+      Nat.mul_le_mul_right _ (Nat.mul_le_mul hBq.le hdq)
+    _ = q ^ 2 * q ^ (d + 1) := by rw [pow_two]
+    _ = q ^ (2 + (d + 1)) := (pow_add q 2 (d + 1)).symm
+    _ = q ^ (d + 3) := by
       congr 1
       omega
 

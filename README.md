@@ -16,6 +16,10 @@ trusted surface is `RSListDecoding/Main.lean`:
   the agreement parameter.
 - `RSListDecoding.all_rate_algorithmic_main` gives the corresponding decoder
   and operation bound.
+- `RSListDecoding.quadratic_adaptive_combinatorial_main` gives the exact
+  finite quadratic-multiplicity certificate.
+- `RSListDecoding.quadratic_adaptive_base_field_combinatorial_main` gives its
+  smaller-list specialization when the weighted degree is below `q`.
 
 For every fixed `0 < ε < 1` and `0 < θ < 1`, the strengthened statements
 provide a threshold `d₀(ε, θ)` such that every `d ≥ d₀` works for all
@@ -23,7 +27,7 @@ dimensions `k ≤ floor ((1-θ) ε n)`, subject to the same explicit root-findin
 field conditions.  Thus every fixed rate strictly below agreement is covered;
 the resulting threshold is not claimed to be practical.  The strengthened
 capstones retain the exact list bound
-`B * (d + 1) * q^(4*d+4)` and the decoder bound `q^(C*(d+1))`, rather than
+`B * sum_{j=0}^d q^(2*(j+1))` and the decoder bound `q^(C*(d+1))`, rather than
 absorbing these into the manuscript's coarser public exponents.
 
 The free-order assembly keeps all finite ratios exact, counts the local
@@ -79,8 +83,16 @@ implies the sharp Reed--Solomon list bound.  This is exported as
 an eventual closed-form estimate for the two adaptive sums is intentionally
 not asserted here.
 
-The only project-specific assumptions are the cardinality and algorithmic
-clauses of Kopparty's Theorem 4.3, both declared and documented in
+The list-size analysis also specializes Kopparty's root recursion to the
+degree-below-characteristic regime used here.  There is no characteristic
+branching in the Hensel lift, reducing the quadratic-extension bound from
+`B*(d+1)*q^(4*d+4)` to `B*sum_{j=0}^d q^(2*(j+1))`.  Under the stronger and often
+practical condition `m*A ≤ q`, the recursion runs over the base field and the
+bound becomes `B*sum_{j=0}^d q^(j+1)`.  The latter conclusion is exported by
+`quadratic_adaptive_base_field_combinatorial_main`.
+
+The only project-specific assumptions are the refined cardinality analysis
+and algorithmic clause of Kopparty's Theorem 4.3, both declared and documented in
 `RSListDecoding/Assumptions.lean`. The kernel dependency checks are in
 `RSListDecoding/Audit/AxiomAudit.lean`.
 

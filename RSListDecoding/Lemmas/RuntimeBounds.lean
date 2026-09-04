@@ -399,16 +399,16 @@ theorem decoderProgram_operations_le_q_pow
     Nat.pow_le_pow_right hq.pos
       (Nat.mul_le_mul_right _ (by omega))
   have hfiltered :
-      q ^ (4 * d + 6) * candidateFilterOperations n K ≤ q ^ E := by
+      q ^ (2 * d + 4) * candidateFilterOperations n K ≤ q ^ E := by
     calc
-      q ^ (4 * d + 6) * candidateFilterOperations n K ≤
-          q ^ (4 * d + 6) * q ^ 4 := Nat.mul_le_mul_left _ hfilter
-      _ = q ^ (4 * d + 10) := by rw [← pow_add]
+      q ^ (2 * d + 4) * candidateFilterOperations n K ≤
+          q ^ (2 * d + 4) * q ^ 4 := Nat.mul_le_mul_left _ hfilter
+      _ = q ^ (2 * d + 8) := by rw [← pow_add]
       _ ≤ q ^ E := by
         apply Nat.pow_le_pow_right hq.pos
-        change 4 * d + 10 ≤ (c + 32) * (d + 1)
+        change 2 * d + 8 ≤ (c + 32) * (d + 1)
         calc
-          4 * d + 10 ≤ 32 * (d + 1) := by omega
+          2 * d + 8 ≤ 32 * (d + 1) := by omega
           _ ≤ (c + 32) * (d + 1) :=
             Nat.mul_le_mul_right _ (by omega)
   calc
@@ -418,7 +418,7 @@ theorem decoderProgram_operations_le_q_pow
               Nat.card (InterpolationColumn d (d ^ 3) A K B W C) ^ 2 +
             Nat.card (InterpolationColumn d (d ^ 3) A K B W C))) +
           q ^ (c * (d + 1)) +
-          q ^ (4 * d + 6) * candidateFilterOperations n K := by
+          q ^ (2 * d + 4) * candidateFilterOperations n K := by
       simpa [c] using hsource
     _ ≤ q ^ E + q ^ E + q ^ E := by
       gcongr

@@ -189,7 +189,7 @@ theorem decoderProgram_operations_le
             Nat.card (InterpolationColumn d m A K B W C) ^ 2 +
           Nat.card (InterpolationColumn d m A K B W C))) +
       q ^ (kopparty_theorem_4_3_algorithm.exponentConstant * (d + 1)) +
-      q ^ (4 * d + 6) * candidateFilterOperations n K := by
+      q ^ (2 * d + 4) * candidateFilterOperations n K := by
   letI : Fact (Nat.Prime q) := ⟨hq⟩
   let interpolation := solveInterpolationConstraints hd hdim alpha y
   let Qsub := interpolation.result
