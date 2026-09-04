@@ -94,7 +94,7 @@ def AllRateCombinatorialMainStatement : Prop :=
             multiplicityAt d * agreementThreshold ε n ≤ q ^ 2 →
             ∀ α : Fin n → ZMod q, Function.Injective α →
               IsListDecodableAtAgreement (k := k) hq.ne_zero α
-                (agreementThreshold ε n) (publicListBoundAt q d)
+                (agreementThreshold ε n) (sharpListBoundAt q d ε θ n)
 
 /-- Algorithmic capacity-form statement in the same finite-field-operation
 model as `AlgorithmicMainStatement`. -/
@@ -116,7 +116,7 @@ def AllRateAlgorithmicMainStatement : Prop :=
                     (decode y).result =
                         decodingList (k := k) hq.ne_zero α y
                           (agreementThreshold ε n) ∧
-                    (decode y).result.card ≤ publicListBoundAt q d ∧
-                    (decode y).operations ≤ q ^ (c * (d ^ 4 + 1))
+                    (decode y).result.card ≤ sharpListBoundAt q d ε θ n ∧
+                    (decode y).operations ≤ q ^ (c * (d + 1))
 
 end RSListDecoding

@@ -80,7 +80,7 @@ theorem higherJetDegreeBudgetAt_cast_le {θ : ℝ} {d : ℕ}
 theorem interpolationBoxWidthAt_cast_le {θ : ℝ} {d : ℕ}
     (hθ : 0 ≤ θ) :
     (interpolationBoxWidthAt θ d : ℝ) ≤
-      θ * (multiplicityAt d : ℝ) / 16 := by
+      θ * (multiplicityAt d : ℝ) / 12 := by
   rw [interpolationBoxWidthAt]
   apply Nat.floor_le
   positivity
@@ -89,7 +89,7 @@ theorem higherJetDegreeBudgetAt_add_three_boxWidthAt_cast_le
     {θ : ℝ} {d : ℕ} (hθ : 0 ≤ θ) :
     ((higherJetDegreeBudgetAt θ d +
         3 * interpolationBoxWidthAt θ d : ℕ) : ℝ) ≤
-      (1 + 15 * θ / 16) * (multiplicityAt d : ℝ) := by
+      (1 + θ) * (multiplicityAt d : ℝ) := by
   push_cast
   have hC := higherJetDegreeBudgetAt_cast_le (d := d) hθ
   have hH := interpolationBoxWidthAt_cast_le (d := d) hθ
@@ -103,7 +103,7 @@ theorem boxFamilyAt_weightedBudget_lt
         (higherJetDegreeBudgetAt θ d +
           3 * interpolationBoxWidthAt θ d) <
       multiplicityAt d * agreementThreshold ε n := by
-  have hfactor : (1 - θ) * (1 + 15 * θ / 16) < 1 := by
+  have hfactor : (1 - θ) * (1 + θ) < 1 := by
     nlinarith [mul_pos hθ (sub_pos.mpr hθ₁)]
   have hm : 0 < (multiplicityAt d : ℝ) := by
     exact_mod_cast multiplicityAt_pos hd
@@ -129,12 +129,12 @@ theorem boxFamilyAt_weightedBudget_lt
           ((higherJetDegreeBudgetAt θ d : ℝ) +
             3 * (interpolationBoxWidthAt θ d : ℝ))
           ≤ ((ambientDimension ε θ n - 1 : ℕ) : ℝ) *
-              ((1 + 15 * θ / 16) * (multiplicityAt d : ℝ)) := by
+              ((1 + θ) * (multiplicityAt d : ℝ)) := by
                 gcongr
       _ ≤ ((1 - θ) * ε * (n : ℝ)) *
-              ((1 + 15 * θ / 16) * (multiplicityAt d : ℝ)) := by
+              ((1 + θ) * (multiplicityAt d : ℝ)) := by
                 gcongr
-      _ = ((1 - θ) * (1 + 15 * θ / 16)) *
+      _ = ((1 - θ) * (1 + θ)) *
               ((multiplicityAt d : ℝ) * (ε * (n : ℝ))) := by ring
       _ < 1 * ((multiplicityAt d : ℝ) * (ε * (n : ℝ))) := by
             exact mul_lt_mul_of_pos_right hfactor (by positivity)
@@ -175,16 +175,16 @@ theorem interpolationBoxWidthAt_le_multiplicityAt
     interpolationBoxWidthAt θ d ≤ multiplicityAt d := by
   have hH := interpolationBoxWidthAt_cast_le (d := d) hθ.le
   have hm : 0 ≤ (multiplicityAt d : ℝ) := by positivity
-  have hθsixteen : θ / 16 ≤ 1 := by linarith
+  have hθtwelve : θ / 12 ≤ 1 := by linarith
   have hreal :
       (interpolationBoxWidthAt θ d : ℝ) ≤
         (multiplicityAt d : ℝ) := by
     calc
       (interpolationBoxWidthAt θ d : ℝ) ≤
-          θ * (multiplicityAt d : ℝ) / 16 := hH
-      _ = (θ / 16) * (multiplicityAt d : ℝ) := by ring
+          θ * (multiplicityAt d : ℝ) / 12 := hH
+      _ = (θ / 12) * (multiplicityAt d : ℝ) := by ring
       _ ≤ 1 * (multiplicityAt d : ℝ) :=
-        mul_le_mul_of_nonneg_right hθsixteen hm
+        mul_le_mul_of_nonneg_right hθtwelve hm
       _ = (multiplicityAt d : ℝ) := one_mul _
   exact_mod_cast hreal
 
@@ -216,15 +216,15 @@ theorem freeGlobalDimensionSlacks
 
 theorem half_interpolationBoxWidthAtTarget_le_cast
     {θ : ℝ} {d : ℕ}
-    (hlarge : 2 ≤ θ * (multiplicityAt d : ℝ) / 16) :
-    θ * (multiplicityAt d : ℝ) / 32 ≤
+    (hlarge : 2 ≤ θ * (multiplicityAt d : ℝ) / 12) :
+    θ * (multiplicityAt d : ℝ) / 24 ≤
       (interpolationBoxWidthAt θ d : ℝ) := by
   have hfloor := Nat.div_two_lt_floor
-    (a := θ * (multiplicityAt d : ℝ) / 16) (by linarith)
+    (a := θ * (multiplicityAt d : ℝ) / 12) (by linarith)
   rw [interpolationBoxWidthAt]
   calc
-    θ * (multiplicityAt d : ℝ) / 32 =
-        (θ * (multiplicityAt d : ℝ) / 16) / 2 := by ring
-    _ ≤ (⌊θ * (multiplicityAt d : ℝ) / 16⌋₊ : ℝ) := hfloor.le
+    θ * (multiplicityAt d : ℝ) / 24 =
+        (θ * (multiplicityAt d : ℝ) / 12) / 2 := by ring
+    _ ≤ (⌊θ * (multiplicityAt d : ℝ) / 12⌋₊ : ℝ) := hfloor.le
 
 end RSListDecoding

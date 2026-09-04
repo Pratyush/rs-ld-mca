@@ -21,7 +21,10 @@ For every fixed `0 < ε < 1` and `0 < θ < 1`, the strengthened statements
 provide a threshold `d₀(ε, θ)` such that every `d ≥ d₀` works for all
 dimensions `k ≤ floor ((1-θ) ε n)`, subject to the same explicit root-finding
 field conditions.  Thus every fixed rate strictly below agreement is covered;
-the resulting constants are not claimed to be practical.
+the resulting threshold is not claimed to be practical.  The strengthened
+capstones retain the exact list bound
+`B * (d + 1) * q^(4*d+4)` and the decoder bound `q^(C*(d+1))`, rather than
+absorbing these into the manuscript's coarser public exponents.
 
 The only project-specific assumptions are the cardinality and algorithmic
 clauses of Kopparty's Theorem 4.3, both declared and documented in

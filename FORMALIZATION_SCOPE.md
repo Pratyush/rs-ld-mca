@@ -107,28 +107,45 @@ n\le q,\qquad B<q,\qquad mA\le q^2,
 \]
 
 the same conclusions hold for every `1 ≤ k ≤ K`: the decoding list has size
-at most `q^(4d+6)`, and the checked decoder returns it exactly in at most
-`q^(C(d^4+1))` finite-field operations.  The corresponding Lean propositions
+at most
+
+\[
+B(d+1)q^{4d+4},
+\]
+
+and the checked decoder returns it exactly in at most
+`q^(C(d+1))` finite-field operations.  The corresponding Lean propositions
 are `AllRateCombinatorialMainStatement` and
 `AllRateAlgorithmicMainStatement`; the trusted-surface theorems are
 `all_rate_combinatorial_main` and `all_rate_algorithmic_main`.
 
-The new argument changes only the final parameter assembly.  The repaired
+The new argument changes only the final parameter assembly.  It widens the
+free-order rectangular interpolation family from
+`floor(θm/16)` to `floor(θm/12)`; the weighted budget still closes because
+`(1-θ)(1+θ)<1`.  The repaired
 shell estimate already holds eventually in an independent `d`, and
 
 \[
-\frac{\theta^3}{262144}\frac{K-1}{n}
+\frac{\theta^3}{110592}\frac{K-1}{n}
 d^{2\theta/(5+\theta)}>1
 \]
 
-also holds eventually because `(K-1)/n` is bounded below by
-`(1-θ)ε/2` and the exponent `2θ/(5+θ)` is positive.  All interpolation,
+also holds eventually because the exact rounding estimate
+
+\[
+\frac{K-1}{n}\ge
+\frac{d}{d+2}(1-\theta)\varepsilon
+\]
+
+holds whenever `d < K`, and the exponent `2θ/(5+θ)` is positive.  The
+factor `d/(d+2)` tends to one, so the rounding loss vanishes with the chosen
+derivative order.  All interpolation,
 contact, multiplicity-root, root-counting, and filtering lemmas are reused.
 
 Equivalently, for a target rate `R` and agreement `ε > R`, choose any
 `θ` with `R ≤ (1-θ)ε`.  The theorem then decodes a rate-`R` code from an
 error fraction approaching `1-R`, for fixed positive capacity gap.  The
-existential shell threshold and the deliberately coarse factor `262144` make
+existential shell threshold and the remaining direct-counting constants make
 the resulting constants potentially enormous; this is a qualitative
 all-rate extension, not a practical parameter recommendation.
 
@@ -148,8 +165,9 @@ replacing an arbitrary `k` by `K`.
 
 ## Exact list bound
 
-The public capstone uses `q^(4d+6)`, not big-O notation. Internally, the
-root-counting step first establishes the sharper bound
+The original public capstone uses `q^(4d+6)`, not big-O notation. The
+strengthened capstone exposes the sharper bound established directly by the
+root-counting step:
 
 \[
 B(d+1)q^{4d+4}.
@@ -190,9 +208,10 @@ q^{C(d^4+1)}=q^{O(\varepsilon^{-12/\theta})}
 
 where the witness is
 `C = kopparty_theorem_4_3_algorithm.exponentConstant + 34`.  Internally, the
-constructed decoder satisfies the stronger `q^(C(d+1))` bound; the fourth
-power is retained in the public statement to match the manuscript's
-conservative runtime.  The externally supplied `q^{O(r+rD/q+1)}` clause is
+constructed decoder satisfies `q^(C(d+1))`; the original capstone retains the
+fourth power to match the manuscript's conservative runtime, while the
+strengthened capstone exposes the linear exponent.  The externally supplied
+`q^{O(r+rD/q+1)}` clause is
 represented by a single uniform constant, rather than treating big-O notation
 as executable data.
 

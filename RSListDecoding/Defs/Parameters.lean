@@ -64,12 +64,13 @@ noncomputable def higherJetDegreeBudgetAt (θ : ℝ) (d : ℕ) : ℕ :=
 noncomputable def higherJetDegreeBudget (ε θ : ℝ) : ℕ :=
   ⌊(1 + 3 * θ / 4) * (multiplicity ε θ : ℝ)⌋₊
 
-/-- Width of a simple rectangular family of interpolation monomials.
-Using `floor(θm/16)` leaves ample slack for the `X`, `Y₀`, and `Y₁`
-exponents and makes the dimension injection entirely discrete. -/
+/-- Width of the free-order rectangular family.  The value `floor(θm/12)`
+is the largest uniform linear choice certified by the coarse weighted-budget
+estimate `C + 3H ≤ (1+θ)m`. -/
 noncomputable def interpolationBoxWidthAt (θ : ℝ) (d : ℕ) : ℕ :=
-  ⌊θ * (multiplicityAt d : ℝ) / 16⌋₊
+  ⌊θ * (multiplicityAt d : ℝ) / 12⌋₊
 
+/-- Original manuscript width, retained by the original capstones. -/
 noncomputable def interpolationBoxWidth (ε θ : ℝ) : ℕ :=
   ⌊θ * (multiplicity ε θ : ℝ) / 16⌋₊
 
@@ -77,6 +78,12 @@ noncomputable def interpolationBoxWidth (ε θ : ℝ) : ℕ :=
 root-counting input. -/
 def publicListBoundAt (q d : ℕ) : ℕ :=
   q ^ (4 * d + 6)
+
+/-- Exact root-counting bound for the free-order theorem, before absorbing
+the two polynomial prefactors into powers of the field size. -/
+noncomputable def sharpListBoundAt
+    (q d : ℕ) (ε θ : ℝ) (n : ℕ) : ℕ :=
+  interpolationDegreeBudgetAt d ε θ n * (d + 1) * q ^ (4 * d + 4)
 
 noncomputable def publicListBound (q : ℕ) (ε θ : ℝ) : ℕ :=
   q ^ (4 * derivativeOrder ε θ + 6)

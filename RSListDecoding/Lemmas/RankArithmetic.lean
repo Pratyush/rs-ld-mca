@@ -27,15 +27,18 @@ theorem shellExponent_add_rankSavingExponent {θ : ℝ}
   field_simp [ne_of_gt (by linarith : 0 < 5 + θ)]
   ring
 
-/-- Convert the real shell and width bounds into the final strict natural
-dimension comparison. -/
-theorem contactEnvelope_scalar_lt_globalRectangle
-    {θ : ℝ} {d K H R n : ℕ}
+/-- Convert a real shell bound and an arbitrary positive rectangle-width
+coefficient into the final strict natural dimension comparison.  Keeping the
+coefficient symbolic lets different parameter assemblies avoid artificial
+fixed-factor losses. -/
+theorem contactEnvelope_scalar_lt_globalRectangle_with_width
+    {θ widthCoefficient : ℝ} {d K H R n : ℕ}
     (hθ : 0 < θ) (hd : 0 < d) (hn : 0 < n)
-    (hH : θ * (d ^ 3 : ℕ) / 32 ≤ (H : ℝ))
+    (hwidthCoefficient : 0 ≤ widthCoefficient)
+    (hH : widthCoefficient * (d ^ 3 : ℕ) ≤ (H : ℝ))
     (hR : (R : ℝ) ≤ 2 * (d : ℝ) ^ shellExponent θ)
     (hcompare :
-      1 < (θ ^ 3 / 262144) *
+      1 < (widthCoefficient ^ 3 / 8) *
         (((K - 1 : ℕ) : ℝ) / (n : ℝ)) *
         (d : ℝ) ^ rankSavingExponent θ) :
     n * (4 * d ^ 8 * R) < (K - 1) * H ^ 3 := by
@@ -56,7 +59,7 @@ theorem contactEnvelope_scalar_lt_globalRectangle
       8 * (n : ℝ) * (d : ℝ) ^ 8 *
           (d : ℝ) ^ shellExponent θ <
         ((K - 1 : ℕ) : ℝ) *
-          (θ * ((d : ℝ) ^ 3) / 32) ^ 3 := by
+          (widthCoefficient * ((d : ℝ) ^ 3)) ^ 3 := by
     calc
       8 * (n : ℝ) * (d : ℝ) ^ 8 *
           (d : ℝ) ^ shellExponent θ =
@@ -64,28 +67,27 @@ theorem contactEnvelope_scalar_lt_globalRectangle
             (d : ℝ) ^ shellExponent θ) * 1 := by ring
       _ < (8 * (n : ℝ) * (d : ℝ) ^ 8 *
             (d : ℝ) ^ shellExponent θ) *
-          ((θ ^ 3 / 262144) *
+          ((widthCoefficient ^ 3 / 8) *
             (((K - 1 : ℕ) : ℝ) / (n : ℝ)) *
             (d : ℝ) ^ rankSavingExponent θ) := hscaled
       _ = ((K - 1 : ℕ) : ℝ) *
-          (θ * ((d : ℝ) ^ 3) / 32) ^ 3 := by
+          (widthCoefficient * ((d : ℝ) ^ 3)) ^ 3 := by
         calc
           8 * (n : ℝ) * (d : ℝ) ^ 8 *
                 (d : ℝ) ^ shellExponent θ *
-              ((θ ^ 3 / 262144) *
+              ((widthCoefficient ^ 3 / 8) *
                 (((K - 1 : ℕ) : ℝ) / (n : ℝ)) *
                 (d : ℝ) ^ rankSavingExponent θ) =
-              (8 * (n : ℝ) * (θ ^ 3 / 262144) *
+              (8 * (n : ℝ) * (widthCoefficient ^ 3 / 8) *
                 (((K - 1 : ℕ) : ℝ) / (n : ℝ)) * (d : ℝ) ^ 8) *
                 ((d : ℝ) ^ shellExponent θ *
                   (d : ℝ) ^ rankSavingExponent θ) := by ring
-          _ = (8 * (n : ℝ) * (θ ^ 3 / 262144) *
+          _ = (8 * (n : ℝ) * (widthCoefficient ^ 3 / 8) *
                 (((K - 1 : ℕ) : ℝ) / (n : ℝ)) * (d : ℝ) ^ 8) *
                 (d : ℝ) := by rw [hpowers]
           _ = ((K - 1 : ℕ) : ℝ) *
-              (θ * ((d : ℝ) ^ 3) / 32) ^ 3 := by
+              (widthCoefficient * ((d : ℝ) ^ 3)) ^ 3 := by
             field_simp
-            ring
   have hleft :
       ((n * (4 * d ^ 8 * R) : ℕ) : ℝ) ≤
         8 * (n : ℝ) * (d : ℝ) ^ 8 *
@@ -100,7 +102,7 @@ theorem contactEnvelope_scalar_lt_globalRectangle
           (d : ℝ) ^ shellExponent θ := by ring
   have hright :
       ((K - 1 : ℕ) : ℝ) *
-          (θ * ((d : ℝ) ^ 3) / 32) ^ 3 ≤
+          (widthCoefficient * ((d : ℝ) ^ 3)) ^ 3 ≤
         (((K - 1) * H ^ 3 : ℕ) : ℝ) := by
     push_cast
     gcongr
@@ -110,6 +112,47 @@ theorem contactEnvelope_scalar_lt_globalRectangle
         (((K - 1) * H ^ 3 : ℕ) : ℝ) :=
     hleft.trans_lt (hmiddle.trans_le hright)
   exact_mod_cast hfinal
+
+/-- Original `/16`-width specialization, including the factor-two floor
+rounding used by the manuscript capstones. -/
+theorem contactEnvelope_scalar_lt_globalRectangle
+    {θ : ℝ} {d K H R n : ℕ}
+    (hθ : 0 < θ) (hd : 0 < d) (hn : 0 < n)
+    (hH : θ * (d ^ 3 : ℕ) / 32 ≤ (H : ℝ))
+    (hR : (R : ℝ) ≤ 2 * (d : ℝ) ^ shellExponent θ)
+    (hcompare :
+      1 < (θ ^ 3 / 262144) *
+        (((K - 1 : ℕ) : ℝ) / (n : ℝ)) *
+        (d : ℝ) ^ rankSavingExponent θ) :
+    n * (4 * d ^ 8 * R) < (K - 1) * H ^ 3 := by
+  apply contactEnvelope_scalar_lt_globalRectangle_with_width
+    (widthCoefficient := θ / 32) hθ hd hn (by positivity)
+  · simpa only [Nat.cast_pow, div_eq_mul_inv, mul_assoc, mul_comm,
+      mul_left_comm] using hH
+  · exact hR
+  · have heq : (θ / 32) ^ 3 / 8 = θ ^ 3 / 262144 := by ring
+    rw [heq]
+    exact hcompare
+
+/-- Sharper `/12`-width specialization used by the free-order capstones. -/
+theorem contactEnvelope_scalar_lt_globalRectangle_freeOrder
+    {θ : ℝ} {d K H R n : ℕ}
+    (hθ : 0 < θ) (hd : 0 < d) (hn : 0 < n)
+    (hH : θ * (d ^ 3 : ℕ) / 24 ≤ (H : ℝ))
+    (hR : (R : ℝ) ≤ 2 * (d : ℝ) ^ shellExponent θ)
+    (hcompare :
+      1 < (θ ^ 3 / 110592) *
+        (((K - 1 : ℕ) : ℝ) / (n : ℝ)) *
+        (d : ℝ) ^ rankSavingExponent θ) :
+    n * (4 * d ^ 8 * R) < (K - 1) * H ^ 3 := by
+  apply contactEnvelope_scalar_lt_globalRectangle_with_width
+    (widthCoefficient := θ / 24) hθ hd hn (by positivity)
+  · simpa only [Nat.cast_pow, div_eq_mul_inv, mul_assoc, mul_comm,
+      mul_left_comm] using hH
+  · exact hR
+  · have heq : (θ / 24) ^ 3 / 8 = θ ^ 3 / 110592 := by ring
+    rw [heq]
+    exact hcompare
 
 /-- The additional small-`ε` bound sufficient for the repaired fixed
 factors in the rank comparison. -/

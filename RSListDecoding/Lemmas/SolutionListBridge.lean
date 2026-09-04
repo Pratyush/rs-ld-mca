@@ -118,4 +118,25 @@ theorem decodingList_card_le_public_of_differentialEquation
       (differentialSolutions_card_le_public
         hq hdK hKn hnq hB Q hQ hcoord hBq hweight)
 
+/-- A common differential equation gives the exact Kopparty cardinality
+bound, without absorbing `B(d+1)` into two additional powers of `q`. -/
+theorem decodingList_card_le_sharp_of_differentialEquation
+    {n q d K B A : ℕ} (hq : Nat.Prime q) (hdK : d < K)
+    (hB : 0 < B) (hKq : K ≤ q)
+    (alpha : Fin n → ZMod q) (y : Fin n → ZMod q)
+    (Q : DifferentialPolynomial q d) (hQ : Q ≠ 0)
+    (hcoord : ∀ j : Fin (d + 1), Q.degreeOf (some j) ≤ B)
+    (hBq : B < q)
+    (hweight : Q.weightedTotalDegree (jetWeight (r := d) (K - 1)) < q ^ 2)
+    (hsolves : ∀ p ∈ decodingList (k := K) hq.ne_zero alpha y A,
+      differentialSpecialization Q
+        (messagePolynomialAtDimension (Nat.zero_lt_of_lt hdK) p) = 0) :
+    (decodingList (k := K) hq.ne_zero alpha y A).card ≤
+      B * (d + 1) * q ^ (4 * d + 4) := by
+  have hK : 0 < K := Nat.zero_lt_of_lt hdK
+  exact (decodingList_card_le_differentialSolutions_at_dimension
+    hq.ne_zero hK alpha y Q hsolves).trans
+      (differentialSolutions_card_le_sharp
+        hq hdK hB Q hQ hcoord hBq hKq hweight)
+
 end RSListDecoding

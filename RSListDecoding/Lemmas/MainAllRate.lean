@@ -21,7 +21,7 @@ theorem exists_freeOrderThreshold
     {ε θ : ℝ} (hε : 0 < ε) (hθ : 0 < θ) (hθ₁ : θ < 1) :
     ∃ d₀ : ℕ, ∀ d : ℕ, d₀ ≤ d →
       2 ≤ d ∧
-      2 ≤ θ * (multiplicityAt d : ℝ) / 16 ∧
+      2 ≤ θ * (multiplicityAt d : ℝ) / 12 ∧
       scaledExponentCount d
           (interpolationWeightBudgetAt θ d + multiplicityAt d) ≤
         scaledShellFactor θ d *
@@ -30,7 +30,8 @@ theorem exists_freeOrderThreshold
             (higherJetDegreeBudgetAt θ d) ∧
       (scaledShellFactor θ d : ℝ) ≤
         2 * (d : ℝ) ^ scaledShellExponent θ ∧
-      1 < (θ ^ 3 / 262144) * ((1 - θ) * ε / 2) *
+      1 < (θ ^ 3 / 110592) *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
         (d : ℝ) ^ rankSavingExponent θ := by
   obtain ⟨dShell, hShell⟩ := exists_scaledShellThreshold hθ hθ₁
   obtain ⟨dBox, hBox⟩ := exists_derivativeOrderThreshold_for_boxWidth hθ
@@ -58,8 +59,14 @@ theorem exists_freeOrderThreshold
   have hfactor := scaledShellFactor_cast_le_two_rpow hθ hθ₁
     (show 1 ≤ d by omega)
   have hboxRaw := hBox d hdBox
-  have hbox : 2 ≤ θ * (multiplicityAt d : ℝ) / 16 := by
-    simpa [multiplicityAt] using hboxRaw
+  have hbox : 2 ≤ θ * (multiplicityAt d : ℝ) / 12 := by
+    calc
+      2 ≤ θ * ((d ^ 3 : ℕ) : ℝ) / 16 := hboxRaw
+      _ ≤ θ * ((d ^ 3 : ℕ) : ℝ) / 12 := by
+        have hnonneg : 0 ≤ θ * ((d ^ 3 : ℕ) : ℝ) := by positivity
+        nlinarith
+      _ = θ * (multiplicityAt d : ℝ) / 12 := by
+        simp [multiplicityAt]
   exact ⟨hd2, hbox, hshell, hfactor, hRank d hdRank⟩
 
 /-- The interpolation-space dimension exceeds the total local constraint
@@ -69,7 +76,7 @@ theorem freeOrder_interpolation_dimension_lt
     (hε : 0 < ε) (hθ : 0 < θ) (hθ₁ : θ < 1)
     (hd2 : 2 ≤ d) (hn : 0 < n)
     (hdK : d < ambientDimension ε θ n)
-    (hbox : 2 ≤ θ * (multiplicityAt d : ℝ) / 16)
+    (hbox : 2 ≤ θ * (multiplicityAt d : ℝ) / 12)
     (hshell :
       scaledExponentCount d
           (interpolationWeightBudgetAt θ d + multiplicityAt d) ≤
@@ -81,7 +88,8 @@ theorem freeOrder_interpolation_dimension_lt
       (scaledShellFactor θ d : ℝ) ≤
         2 * (d : ℝ) ^ scaledShellExponent θ)
     (hlarge :
-      1 < (θ ^ 3 / 262144) * ((1 - θ) * ε / 2) *
+      1 < (θ ^ 3 / 110592) *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
         (d : ℝ) ^ rankSavingExponent θ) :
     n * Module.finrank (ZMod q)
         (contactEnvelopeSpace (R := ZMod q) (d := d)
@@ -94,19 +102,19 @@ theorem freeOrder_interpolation_dimension_lt
           (higherJetDegreeBudgetAt θ d)) := by
   have hd : 0 < d := by omega
   have hwidth :
-      θ * (multiplicityAt d : ℝ) / 32 ≤
+      θ * (multiplicityAt d : ℝ) / 24 ≤
         (interpolationBoxWidthAt θ d : ℝ) :=
     half_interpolationBoxWidthAtTarget_le_cast hbox
   have hfactor' :
       (scaledShellFactor θ d : ℝ) ≤
         2 * (d : ℝ) ^ shellExponent θ := by
     simpa [scaledShellExponent, shellExponent] using hfactor
-  have hcompare := freeOrder_rank_comparison hθ hd2 hdK hlarge
+  have hcompare := freeOrder_rank_comparison hθ hd hdK hlarge
   have harithmetic :
       n * (4 * d ^ 8 * scaledShellFactor θ d) <
         (ambientDimension ε θ n - 1) *
           interpolationBoxWidthAt θ d ^ 3 :=
-    contactEnvelope_scalar_lt_globalRectangle
+    contactEnvelope_scalar_lt_globalRectangle_freeOrder
       hθ hd hn (by simpa [multiplicityAt] using hwidth) hfactor' hcompare
   obtain ⟨hH, hdegree, hweighted⟩ :=
     freeGlobalDimensionSlacks hε hθ hθ₁ hd hn hdK
@@ -138,7 +146,7 @@ theorem exists_freeOrder_ambient_explainer
     (hd2 : 2 ≤ d) (hn : 0 < n)
     (hdK : d < ambientDimension ε θ n)
     (hq : Nat.Prime q)
-    (hbox : 2 ≤ θ * (multiplicityAt d : ℝ) / 16)
+    (hbox : 2 ≤ θ * (multiplicityAt d : ℝ) / 12)
     (hshell :
       scaledExponentCount d
           (interpolationWeightBudgetAt θ d + multiplicityAt d) ≤
@@ -150,7 +158,8 @@ theorem exists_freeOrder_ambient_explainer
       (scaledShellFactor θ d : ℝ) ≤
         2 * (d : ℝ) ^ scaledShellExponent θ)
     (hlarge :
-      1 < (θ ^ 3 / 262144) * ((1 - θ) * ε / 2) *
+      1 < (θ ^ 3 / 110592) *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
         (d : ℝ) ^ rankSavingExponent θ)
     (alpha : Fin n → ZMod q) (halpha : Function.Injective alpha)
     (y : Fin n → ZMod q) :
@@ -234,9 +243,9 @@ theorem allRateCombinatorialMainStatement_proved :
     ambientDimension_lt_blockLength hε hε₁ hθ hθ₁ hnpos
   have hB : 0 < interpolationDegreeBudgetAt d ε θ n :=
     interpolationDegreeBudgetAt_pos hε hd hnpos hdK
-  simpa only [publicListBoundAt] using
-    isListDecodableAtAgreement_of_ambient_explainers_of_le_dimension
-      hq hdK hkK hKn hnq hB hBq hMq alpha
+  simpa only [sharpListBoundAt] using
+    isListDecodableAtAgreement_sharp_of_ambient_explainers_of_le_dimension
+      hq hdK hkK (hKn.le.trans hnq) hB hBq hMq alpha
         (fun y => exists_freeOrder_ambient_explainer
           hε hθ hθ₁ hd2 hnpos hdK hq hbox hshell hfactor hlarge
             alpha halpha y)
@@ -280,10 +289,10 @@ theorem allRateAlgorithmicMainStatement_proved :
       hq hd hdK hB hkK hmA hMq hBq hdim alpha halpha y
   have hlist :
       IsListDecodableAtAgreement (k := k) hq.ne_zero alpha
-        (agreementThreshold ε n) (publicListBoundAt q d) := by
-    simpa only [publicListBoundAt] using
-      isListDecodableAtAgreement_of_ambient_explainers_of_le_dimension
-        hq hdK hkK hKn hnq hB hBq hMq alpha
+        (agreementThreshold ε n) (sharpListBoundAt q d ε θ n) := by
+    simpa only [sharpListBoundAt] using
+      isListDecodableAtAgreement_sharp_of_ambient_explainers_of_le_dimension
+        hq hdK hkK (hKn.le.trans hnq) hB hBq hMq alpha
           (fun received => exists_freeOrder_ambient_explainer
             hε hθ hθ₁ hd2 hnpos hdK hq hbox hshell hfactor hlarge
               alpha halpha received)
@@ -293,12 +302,6 @@ theorem allRateAlgorithmicMainStatement_proved :
     exact decoderProgram_operations_le_q_pow
       hq hd hdK hKn hnq hB hkK
         hmA hMq hBq hW hdim alpha y
-  have hdle4 : d ≤ d ^ 4 := by
-    simpa using Nat.pow_le_pow_right hd (by omega : 1 ≤ 4)
-  have hcost :
-      (decode y).operations ≤ q ^ ((cRoot + 34) * (d ^ 4 + 1)) :=
-    hcostLinear.trans (Nat.pow_le_pow_right hq.pos
-      (Nat.mul_le_mul_left _ (by omega)))
-  exact ⟨hcorrect, hcorrect ▸ hlist y, hcost⟩
+  exact ⟨hcorrect, hcorrect ▸ hlist y, hcostLinear⟩
 
 end RSListDecoding

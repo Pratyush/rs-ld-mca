@@ -59,6 +59,29 @@ theorem isListDecodableAtAgreement_of_ambient_explainers_of_le_dimension
   exact isListDecodableAtAgreement_of_ambient_explainers
     hq hdK hKn hnq hB hBq hMq alpha hexplainer
 
+/-- Exact-prefactor version of the ambient-explainer reduction. -/
+theorem isListDecodableAtAgreement_sharp_of_ambient_explainers_of_le_dimension
+    {n q d k K B A M : ℕ}
+    (hq : Nat.Prime q) (hdK : d < K) (hkK : k ≤ K)
+    (hKq : K ≤ q) (hB : 0 < B) (hBq : B < q) (hMq : M ≤ q ^ 2)
+    (alpha : Fin n → ZMod q)
+    (hexplainer : ∀ y : Fin n → ZMod q,
+      ∃ Q : DifferentialPolynomial q d,
+        Q ≠ 0 ∧
+        (∀ j : Fin (d + 1), Q.degreeOf (some j) ≤ B) ∧
+        Q.weightedTotalDegree (jetWeight (r := d) (K - 1)) < M ∧
+        ∀ p ∈ decodingList (k := K) hq.ne_zero alpha y A,
+          differentialSpecialization Q
+            (messagePolynomialAtDimension (Nat.zero_lt_of_lt hdK) p) = 0) :
+    IsListDecodableAtAgreement (k := k) hq.ne_zero alpha A
+      (B * (d + 1) * q ^ (4 * d + 4)) := by
+  apply isListDecodableAtAgreement_of_le_dimension hq.ne_zero hkK alpha
+  intro y
+  obtain ⟨Q, hQ, hcoord, hweight, hsolves⟩ := hexplainer y
+  exact decodingList_card_le_sharp_of_differentialEquation
+    hq hdK hB hKq alpha y Q hQ hcoord hBq
+      (hweight.trans_le hMq) hsolves
+
 /-- Parameterized form of the preceding reduction matching the public
 capstone.  After this theorem, the only mathematical input still needed at a
 fixed `(θ, ε, n)` is the construction of the explainer polynomial. -/
