@@ -128,6 +128,13 @@ abbrev SharpContactEnvelopeCode (d W : ℕ) :=
   Fin d × ContactTriangle (d ^ 2) × Fin (2 * d ^ 3) ×
     BoundedScaledExponent d (W + d ^ 3)
 
+/-- Exact triangular code for an arbitrary multiplicity divisible by the
+derivative depth.  The quotient `m / d` is the side length of the
+`(T / d,E)` triangle. -/
+abbrev DivisibleContactEnvelopeCode (d m W : ℕ) :=
+  Fin d × ContactTriangle (m / d) × Fin (2 * m) ×
+    BoundedScaledExponent d (W + m)
+
 /-- Encode a contact-envelope monomial using the exact triangular
 `(T / d,E)` region and the residue `T % d`. -/
 def encodeContactEnvelopeSharp {d W : ℕ} (hd : 0 < d)
@@ -143,6 +150,34 @@ def encodeContactEnvelopeSharp {d W : ℕ} (hd : 0 < d)
     have hdiv : (t + d * b) / d < d ^ 2 := by
       rw [Nat.div_lt_iff_lt_mul hd]
       nlinarith [hcontact]
+    simpa using (Nat.add_mul_div_left t b hd) ▸ hdiv
+  exact
+    (⟨t % d, Nat.mod_lt _ hd⟩,
+     ⟨⟨t / d + b, hquot⟩,
+       ⟨(t / d, b), Finset.mem_antidiagonal.mpr rfl⟩⟩,
+     ⟨localFirstJetExponent e.1, by
+       have := e.2.2.1
+       omega⟩,
+     ⟨localHigherExponent e.1, by
+       rw [mem_scaledExponentFinset, scaledWeight_localHigherExponent]
+       exact e.2.2.2.trans (by omega)⟩)
+
+/-- Encode a contact-envelope monomial into the exact triangular contact
+region whenever the derivative depth divides the multiplicity. -/
+def encodeContactEnvelopeDivisible {d m W : ℕ} (hd : 0 < d)
+    (hdm : d ∣ m)
+    (e : {e : LocalVariable d →₀ ℕ //
+      ContactEnvelopeExponent (d := d) m W e}) :
+    DivisibleContactEnvelopeCode d m W := by
+  classical
+  let t := e.1 (localT d)
+  let b := e.1 (localE d)
+  have hcontact : t + d * b < m := by
+    simpa [t, b, contactOrder_eq_t_add_d_mul_e] using e.2.1
+  have hdiv : (t + d * b) / d < m / d := by
+    rw [Nat.div_lt_iff_lt_mul hd, Nat.div_mul_cancel hdm]
+    exact hcontact
+  have hquot : t / d + b < m / d := by
     simpa using (Nat.add_mul_div_left t b hd) ▸ hdiv
   exact
     (⟨t % d, Nat.mod_lt _ hd⟩,
@@ -223,6 +258,43 @@ theorem encodeContactEnvelopeSharp_injective {d W : ℕ} (hd : 0 < d) :
         localY] using hfirst
     · exact congrFun hhigher i
 
+theorem encodeContactEnvelopeDivisible_injective
+    {d m W : ℕ} (hd : 0 < d) (hdm : d ∣ m) :
+    Function.Injective
+      (encodeContactEnvelopeDivisible (m := m) (W := W) hd hdm) := by
+  intro e f hef
+  have hmod : e.1 (localT d) % d = f.1 (localT d) % d :=
+    congrArg (fun z : DivisibleContactEnvelopeCode d m W => z.1.val) hef
+  have hquot : e.1 (localT d) / d = f.1 (localT d) / d :=
+    congrArg
+      (fun z : DivisibleContactEnvelopeCode d m W => z.2.1.2.1.1) hef
+  have hE : e.1 (localE d) = f.1 (localE d) :=
+    congrArg
+      (fun z : DivisibleContactEnvelopeCode d m W => z.2.1.2.1.2) hef
+  have hT : e.1 (localT d) = f.1 (localT d) := by
+    calc
+      e.1 (localT d) =
+          d * (e.1 (localT d) / d) + e.1 (localT d) % d := by
+            exact (Nat.div_add_mod _ _).symm
+      _ = d * (f.1 (localT d) / d) + f.1 (localT d) % d := by
+        rw [hquot, hmod]
+      _ = f.1 (localT d) := Nat.div_add_mod _ _
+  have hfirst := congrArg
+    (fun z : DivisibleContactEnvelopeCode d m W => z.2.2.1.val) hef
+  have hhigher := congrArg
+    (fun z : DivisibleContactEnvelopeCode d m W => z.2.2.2.1) hef
+  apply Subtype.ext
+  apply Finsupp.ext
+  intro v
+  rcases v with (_ | (_ | j))
+  · exact hT
+  · exact hE
+  · obtain ⟨n, rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hd)
+    refine Fin.cases ?_ (fun i => ?_) j
+    · simpa [encodeContactEnvelopeDivisible, localFirstJetExponent_eq,
+        localY] using hfirst
+    · exact congrFun hhigher i
+
 /-- The direct finite codomain count for the contact constraints. -/
 theorem natCard_contactEnvelopeExponent_le {d m W : ℕ} (hd : 0 < d) :
     Nat.card
@@ -237,6 +309,44 @@ theorem natCard_contactEnvelopeExponent_le {d m W : ℕ} (hd : 0 < d) :
     _ = m * (m / d + 1) * (2 * m) * scaledExponentCount d (W + m) := by
       simp [ContactEnvelopeCode, scaledExponentCount, Nat.card_eq_fintype_card,
         mul_assoc]
+
+/-- Exact triangular contact count for every multiplicity divisible by the
+derivative depth.  This removes the factor two in the generic rectangular
+bound. -/
+theorem natCard_contactEnvelopeExponent_le_divisible
+    {d m W : ℕ} (hd : 0 < d) (hdm : d ∣ m) :
+    Nat.card
+        {e : LocalVariable d →₀ ℕ //
+          ContactEnvelopeExponent (d := d) m W e} ≤
+      m * (m / d + 1) * m * scaledExponentCount d (W + m) := by
+  have heven : 2 ∣ (m / d) * (m / d + 1) := by
+    exact (Nat.even_mul_succ_self (m / d)).two_dvd
+  have hcancel :
+      ((m / d) * (m / d + 1) / 2) * 2 =
+        (m / d) * (m / d + 1) := Nat.div_mul_cancel heven
+  have hmuldiv : d * (m / d) = m := Nat.mul_div_cancel' hdm
+  calc
+    Nat.card
+        {e : LocalVariable d →₀ ℕ //
+          ContactEnvelopeExponent (d := d) m W e}
+        ≤ Nat.card (DivisibleContactEnvelopeCode d m W) :=
+      Nat.card_le_card_of_injective
+        (encodeContactEnvelopeDivisible hd hdm)
+        (encodeContactEnvelopeDivisible_injective hd hdm)
+    _ = d * ((m / d) * (m / d + 1) / 2) * (2 * m) *
+          scaledExponentCount d (W + m) := by
+      rw [Nat.card_eq_fintype_card]
+      change Fintype.card
+          (Fin d × ContactTriangle (m / d) × Fin (2 * m) ×
+            BoundedScaledExponent d (W + m)) = _
+      simp only [Fintype.card_prod, Fintype.card_fin, card_contactTriangle,
+        Fintype.card_coe]
+      simp [scaledExponentCount, mul_assoc]
+    _ = m * (m / d + 1) * m *
+          scaledExponentCount d (W + m) := by
+      rw [show d * ((m / d) * (m / d + 1) / 2) * (2 * m) =
+          d * (((m / d) * (m / d + 1) / 2) * 2) * m by ring,
+        hcancel, ← mul_assoc, hmuldiv]
 
 /-- Exact triangular encoding improves the direct local-rank factor
 `4d⁸` to `d⁸+d⁶`, whose asymptotic leading constant is one. -/
@@ -330,6 +440,34 @@ theorem finrank_contactEnvelopeSpace_le
   rw [Module.finrank_eq_card_basis b]
   simpa [Nat.card_eq_fintype_card] using
     (natCard_contactEnvelopeExponent_le (d := d) (m := m) (W := W) hd)
+
+/-- Exact generic local-rank bound when `d ∣ m`.  It is pointwise half the
+older rectangular estimate. -/
+theorem finrank_contactEnvelopeSpace_le_divisible
+    {R : Type*} [Field R] {d m W : ℕ} (hd : 0 < d) (hdm : d ∣ m) :
+    Module.finrank R (contactEnvelopeSpace (R := R) (d := d) m W) ≤
+      m * (m / d + 1) * m * scaledExponentCount d (W + m) := by
+  let code :
+      {e : LocalVariable d →₀ ℕ //
+        ContactEnvelopeExponent (d := d) m W e} →
+        DivisibleContactEnvelopeCode d m W :=
+    encodeContactEnvelopeDivisible hd hdm
+  letI : Fintype
+      {e : LocalVariable d →₀ ℕ //
+        ContactEnvelopeExponent (d := d) m W e} :=
+    Fintype.ofInjective code (by
+      simpa [code] using
+        encodeContactEnvelopeDivisible_injective (m := m) (W := W) hd hdm)
+  let b : Module.Basis
+      {e : LocalVariable d →₀ ℕ //
+        ContactEnvelopeExponent (d := d) m W e}
+      R (contactEnvelopeSpace (R := R) (d := d) m W) :=
+    MvPolynomial.basisRestrictSupport R
+      {e | ContactEnvelopeExponent (d := d) m W e}
+  rw [Module.finrank_eq_card_basis b]
+  simpa [Nat.card_eq_fintype_card] using
+    (natCard_contactEnvelopeExponent_le_divisible
+      (d := d) (m := m) (W := W) hd hdm)
 
 /-- Sharp local-rank bound using the triangular contact encoding. -/
 theorem finrank_contactEnvelopeSpace_le_two_mul_d_pow_eight

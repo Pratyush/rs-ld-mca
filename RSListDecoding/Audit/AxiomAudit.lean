@@ -155,3 +155,25 @@ info: 'RSListDecoding.total_contactEnvelope_finrank_lt_interpolationSpace_of_gen
 -/
 #guard_msgs in
 #print axioms RSListDecoding.total_contactEnvelope_finrank_lt_interpolationSpace_of_generalScalar
+
+/--
+info: 'RSListDecoding.exists_quadratic_weight_coefficient_near_optimal' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms RSListDecoding.exists_quadratic_weight_coefficient_near_optimal
+
+/--
+info: 'RSListDecoding.finrank_contactEnvelopeSpace_le_divisible' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms RSListDecoding.finrank_contactEnvelopeSpace_le_divisible
+
+/--
+info: 'RSListDecoding.total_contactEnvelope_finrank_lt_interpolationSpace_quadraticScalar' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms RSListDecoding.total_contactEnvelope_finrank_lt_interpolationSpace_quadraticScalar

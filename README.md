@@ -42,6 +42,21 @@ minimality.  It is bounded by the analytic factor
 `ceil((2*exp(3))*d^(2/(2+θ)))`, so the rank-saving exponent remains the sharp
 `θ/(2+θ)` without paying that analytic constant at finite parameters.
 
+For the quadratic schedule `m=c*d^2`, the certificate now also optimizes the
+rank coefficient.  At a requested saving exponent `β<θ`, define
+
+~~~text
+Λ(θ,β,c) = min(1,
+  1/(1-θ) - (1+1/(2c))/(1-β)).
+~~~
+
+Every normalized simplex width `λ<Λ(θ,β,c)` is feasible, and every feasible
+width is at most `Λ(θ,β,c)`.  Because `d` divides `m`, the exact triangular
+contact count removes the generic factor two: the finite rank quotient is
+`c*d^2 / ((c*d+1)*R)`, asymptotic to `d/R` rather than `d/(2R)`.  Hence the
+supremal limiting rank coefficient is `Λ(θ,β,c)^3/6`.  Choosing width
+`(1-δ)Λ` retains exactly the fraction `(1-δ)^3` of this coefficient.
+
 The only project-specific assumptions are the cardinality and algorithmic
 clauses of Kopparty's Theorem 4.3, both declared and documented in
 `RSListDecoding/Assumptions.lean`. The kernel dependency checks are in

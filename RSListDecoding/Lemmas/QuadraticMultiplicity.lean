@@ -23,6 +23,15 @@ largest saving at fixed `c` is
 In particular, every target saving `beta < theta` is feasible as soon as
 
 `c > (1-theta)/(2(theta-beta))`.
+
+At fixed `beta`, the exact supremal normalized simplex width is
+
+`min 1 (1/(1-theta) - (1+1/(2c))/(1-beta))`.
+
+The quadratic schedule is divisible by `d`, so an exact triangular contact
+count also removes the factor two in the generic local-rank estimate.  The
+resulting supremal rank coefficient is the cube of the displayed width
+divided by six.
 -/
 
 noncomputable section
@@ -102,6 +111,18 @@ It is approached by taking the weight/degree coefficient `a` up to
 def quadraticSavingCeiling (θ c : ℝ) : ℝ :=
   θ - (1 - θ) / (2 * c)
 
+/-- Supremal normalized width of the global slack simplex at target saving
+`β`.  The second term is the exact rate budget left after taking the shell
+coefficient down to its infimum; the outer minimum enforces `J ≤ m`. -/
+def quadraticSimplexSlackCeiling (θ β c : ℝ) : ℝ :=
+  min 1
+    (1 / (1 - θ) - (1 + 1 / (2 * c)) / (1 - β))
+
+/-- Supremal leading rank coefficient furnished by the exact global simplex
+and exact triangular local contact count. -/
+def quadraticRankCoefficient (θ β c : ℝ) : ℝ :=
+  quadraticSimplexSlackCeiling θ β c ^ 3 / 6
+
 theorem quadraticShellExponent_add_quadraticRankSavingExponent
     (a c : ℝ) :
     quadraticShellExponent a c + quadraticRankSavingExponent a c = 1 := by
@@ -132,19 +153,51 @@ theorem target_lt_quadraticSavingCeiling
   unfold quadraticSavingCeiling
   linarith
 
-/-- Feasible continuous parameters for every saving below the ceiling.
-
-The returned `a` is the common coefficient used for the anisotropic weight
-budget and ordinary-degree cutoff.  The positive `lambda ≤ 1` is the
-remaining normalized width of the global three-dimensional slack simplex.
--/
-theorem exists_quadratic_weight_and_simplex_coefficients
-    {θ β c : ℝ} (_hθ : 0 < θ) (hθ₁ : θ < 1)
-    (_hβ : 0 < β) (hβθ : β < θ) (hc : 0 < c)
+/-- The saving hypothesis is equivalent to positive room between the shell
+coefficient's infimum and the rate boundary. -/
+theorem quadratic_shell_lower_lt_rate_boundary
+    {θ β c : ℝ} (hθ₁ : θ < 1) (hβθ : β < θ) (hc : 0 < c)
     (hcLarge : (1 - θ) / (2 * (θ - β)) < c) :
-    ∃ a lam : ℝ,
-      0 < a ∧ 0 < lam ∧ lam ≤ 1 ∧
-      a + lam < 1 / (1 - θ) ∧
+    (1 + 1 / (2 * c)) / (1 - β) < 1 / (1 - θ) := by
+  have hβ₁ : β < 1 := hβθ.trans hθ₁
+  have hceiling := target_lt_quadraticSavingCeiling hc hβθ hcLarge
+  unfold quadraticSavingCeiling at hceiling
+  rw [div_lt_div_iff₀ (sub_pos.mpr hβ₁) (sub_pos.mpr hθ₁)]
+  calc
+    (1 + 1 / (2 * c)) * (1 - θ) =
+        (1 - θ) + (1 - θ) / (2 * c) := by ring
+    _ < 1 * (1 - β) := by linarith
+
+theorem quadraticSimplexSlackCeiling_pos
+    {θ β c : ℝ} (hθ₁ : θ < 1) (hβθ : β < θ) (hc : 0 < c)
+    (hcLarge : (1 - θ) / (2 * (θ - β)) < c) :
+    0 < quadraticSimplexSlackCeiling θ β c := by
+  rw [quadraticSimplexSlackCeiling, lt_min_iff]
+  exact ⟨zero_lt_one, sub_pos.mpr <|
+    quadratic_shell_lower_lt_rate_boundary hθ₁ hβθ hc hcLarge⟩
+
+theorem quadraticSimplexSlackCeiling_le_one (θ β c : ℝ) :
+    quadraticSimplexSlackCeiling θ β c ≤ 1 := by
+  exact min_le_left _ _
+
+theorem quadraticRankCoefficient_pos
+    {θ β c : ℝ} (hθ₁ : θ < 1) (hβθ : β < θ) (hc : 0 < c)
+    (hcLarge : (1 - θ) / (2 * (θ - β)) < c) :
+    0 < quadraticRankCoefficient θ β c := by
+  unfold quadraticRankCoefficient
+  positivity [quadraticSimplexSlackCeiling_pos hθ₁ hβθ hc hcLarge]
+
+/-- Every simplex width strictly below the displayed ceiling is feasible.
+This removes the two successive factor-two choices in the earlier midpoint
+witness and exposes the optimal rank coefficient as a supremum. -/
+theorem exists_quadratic_weight_coefficient_for_simplex_slack
+    {θ β c lam : ℝ} (_hθ : 0 < θ) (hθ₁ : θ < 1)
+    (_hβ : 0 < β) (hβθ : β < θ) (hc : 0 < c)
+    (_hcLarge : (1 - θ) / (2 * (θ - β)) < c)
+    (_hlam : 0 < lam)
+    (hlamCeiling : lam < quadraticSimplexSlackCeiling θ β c) :
+    ∃ a : ℝ,
+      0 < a ∧ a + lam < 1 / (1 - θ) ∧
       quadraticShellExponent a c < 1 - β := by
   let lower := (1 + 1 / (2 * c)) / (1 - β)
   let upper := 1 / (1 - θ)
@@ -152,46 +205,20 @@ theorem exists_quadratic_weight_and_simplex_coefficients
   have hlowerPos : 0 < lower := by
     dsimp [lower]
     positivity
-  have hupperPos : 0 < upper := by
-    dsimp [upper]
-    positivity
-  have hceiling := target_lt_quadraticSavingCeiling hc hβθ hcLarge
-  have hlowerUpper : lower < upper := by
-    dsimp [lower, upper]
-    unfold quadraticSavingCeiling at hceiling
-    rw [div_lt_div_iff₀ (sub_pos.mpr hβ₁) (sub_pos.mpr hθ₁)]
-    calc
-      (1 + 1 / (2 * c)) * (1 - θ) =
-          (1 - θ) + (1 - θ) / (2 * c) := by ring
-      _ < 1 * (1 - β) := by simpa using (show
-        (1 - θ) + (1 - θ) / (2 * c) < 1 - β by linarith)
-  let a := (lower + upper) / 2
-  let gap := upper - a
-  let lam := min (gap / 2) (1 / 2)
+  have hlamGap : lam < upper - lower := by
+    have hraw := (lt_min_iff.mp (by
+      simpa only [quadraticSimplexSlackCeiling] using hlamCeiling)).2
+    simpa only [upper, lower] using hraw
+  have hlowerUpperLam : lower < upper - lam := by linarith
+  let a := (lower + (upper - lam)) / 2
   have haLower : lower < a := by
     dsimp [a]
     linarith
-  have haUpper : a < upper := by
+  have haUpper : a < upper - lam := by
     dsimp [a]
     linarith
   have haPos : 0 < a := hlowerPos.trans haLower
-  have hgapPos : 0 < gap := by
-    dsimp [gap]
-    linarith
-  have hlamPos : 0 < lam := by
-    dsimp [lam]
-    exact lt_min (by positivity) (by norm_num)
-  have hlamOne : lam ≤ 1 := by
-    calc
-      lam ≤ 1 / 2 := min_le_right _ _
-      _ ≤ 1 := by norm_num
-  have hlamGap : lam < gap := by
-    calc
-      lam ≤ gap / 2 := min_le_left _ _
-      _ < gap := by linarith
-  have hbudget : a + lam < upper := by
-    dsimp [gap] at hlamGap
-    linarith
+  have hbudget : a + lam < upper := by linarith
   have hshell : quadraticShellExponent a c < 1 - β := by
     have hnumPos : 0 < 1 + 1 / (2 * c) := by positivity
     have hlowerEq : lower * (1 - β) = 1 + 1 / (2 * c) := by
@@ -200,8 +227,91 @@ theorem exists_quadratic_weight_and_simplex_coefficients
     unfold quadraticShellExponent
     rw [div_lt_iff₀ haPos]
     nlinarith
-  exact ⟨a, lam, haPos, hlamPos, hlamOne, by simpa [upper] using hbudget,
-    hshell⟩
+  exact ⟨a, haPos, by simpa [upper] using hbudget, hshell⟩
+
+/-- Explicit near-optimal specialization: for every relative loss
+`0 < delta < 1`, one can retain the fraction `1-delta` of the supremal
+simplex width. -/
+theorem exists_quadratic_weight_coefficient_near_optimal
+    {θ β c delta : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1)
+    (hβ : 0 < β) (hβθ : β < θ) (hc : 0 < c)
+    (hcLarge : (1 - θ) / (2 * (θ - β)) < c)
+    (hdelta : 0 < delta) (hdelta₁ : delta < 1) :
+    ∃ a : ℝ,
+      0 < a ∧
+      a + (1 - delta) * quadraticSimplexSlackCeiling θ β c <
+        1 / (1 - θ) ∧
+      quadraticShellExponent a c < 1 - β := by
+  have hceilingPos :=
+    quadraticSimplexSlackCeiling_pos hθ₁ hβθ hc hcLarge
+  have hlamPos :
+      0 < (1 - delta) * quadraticSimplexSlackCeiling θ β c := by
+    positivity
+  have hlamCeiling :
+      (1 - delta) * quadraticSimplexSlackCeiling θ β c <
+        quadraticSimplexSlackCeiling θ β c := by
+    nlinarith
+  exact exists_quadratic_weight_coefficient_for_simplex_slack
+    hθ hθ₁ hβ hβθ hc hcLarge hlamPos hlamCeiling
+
+/-- Retaining a fraction `1-delta` of the optimal width retains exactly the
+cube of that fraction of the optimal rank coefficient. -/
+theorem near_optimal_quadratic_rank_coefficient (θ β c delta : ℝ) :
+    ((1 - delta) * quadraticSimplexSlackCeiling θ β c) ^ 3 / 6 =
+      (1 - delta) ^ 3 * quadraticRankCoefficient θ β c := by
+  unfold quadraticRankCoefficient
+  ring
+
+/-- Conversely, every feasible width is bounded by the displayed ceiling.
+Thus `quadraticRankCoefficient` is not merely an improved lower bound: it is
+the supremal coefficient within this continuous parameter family. -/
+theorem quadratic_simplex_slack_le_ceiling_of_feasible
+    {θ β c a lam : ℝ} (hθ₁ : θ < 1) (hβθ : β < θ)
+    (hc : 0 < c) (ha : 0 < a) (hlamOne : lam ≤ 1)
+    (hbudget : a + lam < 1 / (1 - θ))
+    (hshell : quadraticShellExponent a c < 1 - β) :
+    lam ≤ quadraticSimplexSlackCeiling θ β c := by
+  have hβ₁ : β < 1 := hβθ.trans hθ₁
+  have hnumPos : 0 < 1 + 1 / (2 * c) := by positivity
+  have haLower : (1 + 1 / (2 * c)) / (1 - β) < a := by
+    rw [div_lt_iff₀ (sub_pos.mpr hβ₁)]
+    unfold quadraticShellExponent at hshell
+    rw [div_lt_iff₀ ha] at hshell
+    simpa only [mul_comm] using hshell
+  rw [quadraticSimplexSlackCeiling, le_min_iff]
+  exact ⟨hlamOne, by linarith⟩
+
+/-- Feasible continuous parameters for every saving below the ceiling.
+
+The returned `a` is the common coefficient used for the anisotropic weight
+budget and ordinary-degree cutoff.  The positive `lambda ≤ 1` is the
+remaining normalized width of the global three-dimensional slack simplex.
+-/
+theorem exists_quadratic_weight_and_simplex_coefficients
+    {θ β c : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1)
+    (hβ : 0 < β) (hβθ : β < θ) (hc : 0 < c)
+    (hcLarge : (1 - θ) / (2 * (θ - β)) < c) :
+    ∃ a lam : ℝ,
+      0 < a ∧ 0 < lam ∧ lam ≤ 1 ∧
+      a + lam < 1 / (1 - θ) ∧
+      quadraticShellExponent a c < 1 - β := by
+  let lam := quadraticSimplexSlackCeiling θ β c / 2
+  have hceilingPos :=
+    quadraticSimplexSlackCeiling_pos hθ₁ hβθ hc hcLarge
+  have hlamPos : 0 < lam := by
+    dsimp [lam]
+    positivity
+  have hlamCeiling : lam < quadraticSimplexSlackCeiling θ β c := by
+    dsimp [lam]
+    linarith
+  obtain ⟨a, haPos, hbudget, hshell⟩ :=
+    exists_quadratic_weight_coefficient_for_simplex_slack
+      hθ hθ₁ hβ hβθ hc hcLarge hlamPos hlamCeiling
+  have hlamOne : lam ≤ 1 := by
+    calc
+      lam ≤ quadraticSimplexSlackCeiling θ β c := hlamCeiling.le
+      _ ≤ 1 := quadraticSimplexSlackCeiling_le_one θ β c
+  exact ⟨a, lam, haPos, hlamPos, hlamOne, hbudget, hshell⟩
 
 /-- Exact continuous shell-cost identity behind the quadratic exponent.
 Here `D` is represented by its asymptotic upper bound `d^2/2`. -/
@@ -214,8 +324,8 @@ theorem quadratic_shell_cost_identity
   field_simp [ha, hc, hd, hL]
 
 /-- With matched weight and ordinary-degree coefficients, the exponent in
-the bad-tuple estimate is exactly `L`; taking `L = 1 + log d` leaves the
-constant good-mass fraction `1-e^{-1}` asymptotically. -/
+the bad-tuple estimate is exactly `L`; taking `L = 1 + log d` leaves a fixed
+good-mass fraction `1-e^{-1}` in the limit. -/
 theorem matched_bad_tuple_cost_identity
     {a c d L : ℝ} (ha : a ≠ 0) (hc : c ≠ 0)
     (hd : d ≠ 0) (hL : L ≠ 0) :
@@ -294,6 +404,71 @@ theorem contactEnvelope_scalar_lt_globalSimplex_general
       hmiddle.trans_le hright
   exact_mod_cast hfinal
 
+/-- Sharp scalar comparison when the derivative depth divides the
+multiplicity.  The exact triangular contact geometry removes the factor two
+from `contactEnvelope_scalar_lt_globalSimplex_general`. -/
+theorem contactEnvelope_scalar_lt_globalSimplex_divisible
+    {widthCoefficient : ℝ} {d m K J R n : ℕ}
+    (hm : 0 < m) (hn : 0 < n) (hR : 0 < R)
+    (hwidthCoefficient : 0 ≤ widthCoefficient)
+    (hJ : widthCoefficient * (m : ℝ) ≤ (J : ℝ))
+    (hcompare :
+      1 < (1 / 6) * widthCoefficient ^ 3 *
+        (((K - 1 : ℕ) : ℝ) / (n : ℝ)) *
+        ((m : ℝ) /
+          (((m / d + 1 : ℕ) : ℝ) * (R : ℝ)))) :
+    n * (m * (m / d + 1) * m * R) <
+      (K - 1) * (J + 2).choose 3 := by
+  have hnR : 0 < (n : ℝ) := by exact_mod_cast hn
+  have hmR : 0 < (m : ℝ) := by exact_mod_cast hm
+  have hRR : 0 < (R : ℝ) := by exact_mod_cast hR
+  have hquotR : 0 < ((m / d + 1 : ℕ) : ℝ) := by positivity
+  have hmultPos :
+      0 < (n : ℝ) * (m : ℝ) * ((m / d + 1 : ℕ) : ℝ) *
+        (m : ℝ) * (R : ℝ) := by positivity
+  have hscaled := mul_lt_mul_of_pos_left hcompare hmultPos
+  have hmiddle :
+      (n : ℝ) * (m : ℝ) * ((m / d + 1 : ℕ) : ℝ) *
+          (m : ℝ) * (R : ℝ) <
+        ((K - 1 : ℕ) : ℝ) *
+          ((1 / 6) * (widthCoefficient * (m : ℝ)) ^ 3) := by
+    calc
+      (n : ℝ) * (m : ℝ) * ((m / d + 1 : ℕ) : ℝ) *
+          (m : ℝ) * (R : ℝ) =
+          ((n : ℝ) * (m : ℝ) * ((m / d + 1 : ℕ) : ℝ) *
+            (m : ℝ) * (R : ℝ)) * 1 := by ring
+      _ < ((n : ℝ) * (m : ℝ) * ((m / d + 1 : ℕ) : ℝ) *
+            (m : ℝ) * (R : ℝ)) *
+          ((1 / 6) * widthCoefficient ^ 3 *
+            (((K - 1 : ℕ) : ℝ) / (n : ℝ)) *
+            ((m : ℝ) /
+              (((m / d + 1 : ℕ) : ℝ) * (R : ℝ)))) := hscaled
+      _ = ((K - 1 : ℕ) : ℝ) *
+          ((1 / 6) * (widthCoefficient * (m : ℝ)) ^ 3) := by
+        field_simp
+  have hsimplex :
+      (1 / 6 : ℝ) * (J : ℝ) ^ 3 ≤
+        (((J + 2).choose 3 : ℕ) : ℝ) :=
+    one_sixth_mul_cube_le_choose_add_two_cast J
+  have hright :
+      ((K - 1 : ℕ) : ℝ) *
+          ((1 / 6) * (widthCoefficient * (m : ℝ)) ^ 3) ≤
+        ((K - 1 : ℕ) : ℝ) *
+          (((J + 2).choose 3 : ℕ) : ℝ) := by
+    gcongr
+    calc
+      (1 / 6 : ℝ) * (widthCoefficient * (m : ℝ)) ^ 3 ≤
+          (1 / 6 : ℝ) * (J : ℝ) ^ 3 := by
+        gcongr
+      _ ≤ (((J + 2).choose 3 : ℕ) : ℝ) := hsimplex
+  have hfinal :
+      ((n * (m * (m / d + 1) * m * R) : ℕ) : ℝ) <
+        (((K - 1) * (J + 2).choose 3 : ℕ) : ℝ) := by
+    norm_num only [Nat.cast_mul, Nat.cast_add, Nat.cast_ofNat]
+    simpa only [Nat.cast_add, Nat.cast_one, mul_assoc, mul_left_comm, mul_comm]
+      using hmiddle.trans_le hright
+  exact_mod_cast hfinal
+
 /-- End-to-end finite rank comparison with arbitrary multiplicity.  It
 combines the generic contact count, exact global slack simplex, shell bound,
 and the scalar cancellation theorem above. -/
@@ -320,5 +495,91 @@ theorem total_contactEnvelope_finrank_lt_interpolationSpace_of_generalScalar
     hd hJle hdegree hweighted hshell
   exact contactEnvelope_scalar_lt_globalSimplex_general
     hm hn hR hwidthCoefficient hJlower hcompare
+
+/-- End-to-end finite rank comparison with the optimized coefficient for a
+multiplicity divisible by the derivative depth. -/
+theorem total_contactEnvelope_finrank_lt_interpolationSpace_of_divisibleScalar
+    {q d m A K B W C J R n : ℕ} [Fact (Nat.Prime q)]
+    {widthCoefficient : ℝ}
+    (hd : 0 < d) (hm : 0 < m) (hn : 0 < n) (hR : 0 < R)
+    (hdm : d ∣ m)
+    (hJle : J ≤ m) (hdegree : C + J ≤ B)
+    (hweighted : (K - 1) * (C + J) ≤ m * A)
+    (hshell : scaledExponentCount d (W + m) ≤
+      R * goodScaledExponentCount d W C)
+    (hwidthCoefficient : 0 ≤ widthCoefficient)
+    (hJlower : widthCoefficient * (m : ℝ) ≤ (J : ℝ))
+    (hcompare :
+      1 < (1 / 6) * widthCoefficient ^ 3 *
+        (((K - 1 : ℕ) : ℝ) / (n : ℝ)) *
+        ((m : ℝ) /
+          (((m / d + 1 : ℕ) : ℝ) * (R : ℝ)))) :
+    n * Module.finrank (ZMod q)
+          (contactEnvelopeSpace (R := ZMod q) (d := d) m W) <
+      Module.finrank (ZMod q)
+          (interpolationSpace q d m A K B W C) := by
+  apply total_contactEnvelope_finrank_lt_interpolationSpace_simplex_divisible
+    hd hdm hJle hdegree hweighted hshell
+  exact contactEnvelope_scalar_lt_globalSimplex_divisible
+    hm hn hR hwidthCoefficient hJlower hcompare
+
+/-- The quadratic multiplicity is automatically divisible by the derivative
+depth, so the optimized triangular coefficient always applies. -/
+theorem derivativeDepth_dvd_quadraticMultiplicityAt (c d : ℕ) :
+    d ∣ quadraticMultiplicityAt c d := by
+  refine ⟨c * d, ?_⟩
+  simp [quadraticMultiplicityAt]
+  ring
+
+/-- Exact finite quotient appearing in the optimized quadratic rank
+comparison.  Its ratio to `d` tends to one for every fixed positive `c`; the
+older rectangular comparison had limiting ratio `d/2`. -/
+theorem quadratic_rank_quotient_eq
+    {c d R : ℕ} (hd : 0 < d) :
+    (quadraticMultiplicityAt c d : ℝ) /
+        (((quadraticMultiplicityAt c d / d + 1 : ℕ) : ℝ) * (R : ℝ)) =
+      ((c * d ^ 2 : ℕ) : ℝ) /
+        (((c * d + 1 : ℕ) : ℝ) * (R : ℝ)) := by
+  rw [quadraticMultiplicityAt_div hd]
+  rfl
+
+/-- Quadratic-multiplicity capstone with the optimized rank coefficient
+written in closed form.  The finite rank quotient is
+
+`c d² / ((c d + 1) R)`,
+
+which is asymptotic to `d / R`; the former generic rectangle supplied only
+`d / (2R)`. -/
+theorem total_contactEnvelope_finrank_lt_interpolationSpace_quadraticScalar
+    {q c d A K B W C J R n : ℕ} [Fact (Nat.Prime q)]
+    {widthCoefficient : ℝ}
+    (hc : 0 < c) (hd : 0 < d) (hn : 0 < n) (hR : 0 < R)
+    (hJle : J ≤ quadraticMultiplicityAt c d)
+    (hdegree : C + J ≤ B)
+    (hweighted : (K - 1) * (C + J) ≤
+      quadraticMultiplicityAt c d * A)
+    (hshell : scaledExponentCount d
+        (W + quadraticMultiplicityAt c d) ≤
+      R * goodScaledExponentCount d W C)
+    (hwidthCoefficient : 0 ≤ widthCoefficient)
+    (hJlower : widthCoefficient * (quadraticMultiplicityAt c d : ℝ) ≤
+      (J : ℝ))
+    (hcompare :
+      1 < (1 / 6) * widthCoefficient ^ 3 *
+        (((K - 1 : ℕ) : ℝ) / (n : ℝ)) *
+        (((c * d ^ 2 : ℕ) : ℝ) /
+          (((c * d + 1 : ℕ) : ℝ) * (R : ℝ)))) :
+    n * Module.finrank (ZMod q)
+          (contactEnvelopeSpace (R := ZMod q) (d := d)
+            (quadraticMultiplicityAt c d) W) <
+      Module.finrank (ZMod q)
+          (interpolationSpace q d (quadraticMultiplicityAt c d)
+            A K B W C) := by
+  apply total_contactEnvelope_finrank_lt_interpolationSpace_of_divisibleScalar
+    hd (quadraticMultiplicityAt_pos hc hd) hn hR
+    (derivativeDepth_dvd_quadraticMultiplicityAt c d)
+    hJle hdegree hweighted hshell hwidthCoefficient hJlower
+  rw [quadratic_rank_quotient_eq hd]
+  exact hcompare
 
 end RSListDecoding

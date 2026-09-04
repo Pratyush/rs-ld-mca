@@ -187,6 +187,41 @@ holds whenever `d < K`, and the sharp saving exponent `θ/(2+θ)` is positive:
 \frac{2}{2+\theta}+\frac{\theta}{2+\theta}=1.
 \]
 
+The separate quadratic-multiplicity development also optimizes the rank
+coefficient, not only the saving exponent.  For `m=c d²` and requested saving
+`β<θ`, set
+
+\[
+\Lambda(\theta,\beta,c)=\min\left\{1,
+\frac1{1-\theta}-
+\frac{1+1/(2c)}{1-\beta}\right\}.
+\]
+
+Under `c>(1-θ)/(2(θ-β))`, this quantity is positive.  Lean proves that every
+`0<λ<Λ(θ,β,c)` admits a common shell coefficient satisfying both the rate
+budget and shell-exponent target, while every feasible `λ≤1` is bounded above
+by `Λ`.  Thus the optimal limiting simplex coefficient is the supremum
+
+\[
+\frac{\Lambda(\theta,\beta,c)^3}{6}.
+\]
+
+Moreover, `d∣m` for this schedule.  A multiplicity-generic triangular
+encoding of the `(T/d,E)` contact region gives the exact local factor
+
+\[
+m^2(m/d+1)
+\]
+
+instead of the previous rectangular `2m²(m/d+1)`.  After cancellation with
+the global `m³/6` simplex, the finite rank quotient becomes
+
+\[
+\frac{c d^2}{(c d+1)R},
+\]
+
+which tends to `d/R`; the previous generic bound tended to `d/(2R)`.
+
 The former proof used the looser shell exponent `(5-θ)/(5+θ)` and therefore
 saved only `2θ/(5+θ)`.  The new estimate follows by retaining the relative
 floor factor in the weight budget and proving directly that the logarithm of
