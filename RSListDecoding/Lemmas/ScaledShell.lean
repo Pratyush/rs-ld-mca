@@ -61,6 +61,28 @@ noncomputable def exactScaledShellFactor (θ : ℝ) (d : ℕ) : ℕ :=
   (2 * (scaledShellWeight θ d + d ^ 3 + d * (d - 1) / 2) ^ (d - 1)) ⌈/⌉
     (scaledShellWeight θ d ^ (d - 1))
 
+/-- The factorial-normalized simplex mass left after subtracting the full
+bad-tuple union bound. -/
+noncomputable def scaledShellRetainedMass (θ : ℝ) (d : ℕ) : ℕ :=
+  scaledShellWeight θ d ^ (d - 1) -
+    (d - 1) *
+      (scaledShellWeight θ d - (scaledShellDegree θ d + 1) +
+        (d - 1)) ^ (d - 1)
+
+/-- The best shell factor obtainable from the explicit bad-tuple union bound,
+without replacing the retained mass by one half. -/
+noncomputable def retainedScaledShellFactor (θ : ℝ) (d : ℕ) : ℕ :=
+  (scaledShellWeight θ d + d ^ 3 + d * (d - 1) / 2) ^ (d - 1) ⌈/⌉
+    scaledShellRetainedMass θ d
+
+/-- The pointwise minimal factor for the actual finite cardinality comparison.
+This absorbs the bad-tuple correction exactly, rather than estimating it by a
+fixed fraction of the ambient simplex. -/
+noncomputable def exactGoodScaledShellFactor (θ : ℝ) (d : ℕ) : ℕ :=
+  scaledExponentCount d (scaledShellWeight θ d + d ^ 3) ⌈/⌉
+    goodScaledExponentCount d
+      (scaledShellWeight θ d) (scaledShellDegree θ d)
+
 @[simp]
 theorem scaledShellWeight_derivativeOrder (ε θ : ℝ) :
     scaledShellWeight θ (derivativeOrder ε θ) =
@@ -662,6 +684,173 @@ theorem exactScaledShellFactor_pos
       0 < exactScaledShellFactor θ d *
         scaledShellWeight θ d ^ (d - 1) := hleft.trans_le hspec
   exact pos_of_mul_pos_left hproduct (Nat.zero_le _)
+
+/-- The retained-mass denominator is positive whenever the former
+half-mass bad-tuple hypothesis holds. -/
+theorem scaledShellRetainedMass_pos
+    {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1)
+    {d : ℕ} (hd : 2 ≤ d)
+    (hbad :
+      2 * ((d - 1) *
+          (scaledShellWeight θ d - (scaledShellDegree θ d + 1) +
+            (d - 1)) ^ (d - 1)) ≤
+        scaledShellWeight θ d ^ (d - 1)) :
+    0 < scaledShellRetainedMass θ d := by
+  have hpow := scaledShellWeight_pow_pos hθ hθ₁ hd
+  rw [scaledShellRetainedMass]
+  omega
+
+/-- The retained-mass factor satisfies its defining cross-multiplied
+inequality. -/
+theorem retainedScaledShellFactor_spec
+    {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1)
+    {d : ℕ} (hd : 2 ≤ d)
+    (hbad :
+      2 * ((d - 1) *
+          (scaledShellWeight θ d - (scaledShellDegree θ d + 1) +
+            (d - 1)) ^ (d - 1)) ≤
+        scaledShellWeight θ d ^ (d - 1)) :
+    (scaledShellWeight θ d + d ^ 3 + d * (d - 1) / 2) ^ (d - 1) ≤
+      retainedScaledShellFactor θ d * scaledShellRetainedMass θ d := by
+  have hden := scaledShellRetainedMass_pos hθ hθ₁ hd hbad
+  have hreflexive :
+      ((scaledShellWeight θ d + d ^ 3 + d * (d - 1) / 2) ^
+          (d - 1) ⌈/⌉ scaledShellRetainedMass θ d) ≤
+        ((scaledShellWeight θ d + d ^ 3 + d * (d - 1) / 2) ^
+          (d - 1) ⌈/⌉ scaledShellRetainedMass θ d) := le_rfl
+  simpa [retainedScaledShellFactor, mul_comm] using
+    (ceilDiv_le_iff_le_mul hden).mp hreflexive
+
+/-- Minimality of the closed-form retained-mass factor. -/
+theorem retainedScaledShellFactor_le_iff
+    {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1)
+    {d R : ℕ} (hd : 2 ≤ d)
+    (hbad :
+      2 * ((d - 1) *
+          (scaledShellWeight θ d - (scaledShellDegree θ d + 1) +
+            (d - 1)) ^ (d - 1)) ≤
+        scaledShellWeight θ d ^ (d - 1)) :
+    retainedScaledShellFactor θ d ≤ R ↔
+      (scaledShellWeight θ d + d ^ 3 + d * (d - 1) / 2) ^ (d - 1) ≤
+        R * scaledShellRetainedMass θ d := by
+  have hden := scaledShellRetainedMass_pos hθ hθ₁ hd hbad
+  simpa [retainedScaledShellFactor, mul_comm] using
+    (ceilDiv_le_iff_le_mul hden :
+      ((scaledShellWeight θ d + d ^ 3 + d * (d - 1) / 2) ^
+          (d - 1) ⌈/⌉ scaledShellRetainedMass θ d) ≤ R ↔ _)
+
+/-- Retaining the full good mass never costs more than replacing it by one
+half. -/
+theorem retainedScaledShellFactor_le_exactScaledShellFactor
+    {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1)
+    {d : ℕ} (hd : 2 ≤ d)
+    (hbad :
+      2 * ((d - 1) *
+          (scaledShellWeight θ d - (scaledShellDegree θ d + 1) +
+            (d - 1)) ^ (d - 1)) ≤
+        scaledShellWeight θ d ^ (d - 1)) :
+    retainedScaledShellFactor θ d ≤ exactScaledShellFactor θ d := by
+  rw [retainedScaledShellFactor_le_iff hθ hθ₁ hd hbad]
+  have hratio := exactScaledShellFactor_spec hθ hθ₁ hd
+  let A := (scaledShellWeight θ d + d ^ 3 +
+    d * (d - 1) / 2) ^ (d - 1)
+  let P := scaledShellWeight θ d ^ (d - 1)
+  let E := (d - 1) *
+    (scaledShellWeight θ d - (scaledShellDegree θ d + 1) +
+      (d - 1)) ^ (d - 1)
+  let R := exactScaledShellFactor θ d
+  have hretain : P ≤ 2 * (P - E) := by
+    dsimp [P, E]
+    omega
+  have hdouble : 2 * A ≤ 2 * (R * (P - E)) := by
+    calc
+      2 * A ≤ R * P := by simpa [A, P, R] using hratio
+      _ ≤ R * (2 * (P - E)) := Nat.mul_le_mul_left R hretain
+      _ = 2 * (R * (P - E)) := by ring
+  have hsingle : A ≤ R * (P - E) := by omega
+  simpa [A, P, E, R, scaledShellRetainedMass] using hsingle
+
+/-- The exact-good factor proves the shell comparison at every parameter,
+with no bad-tuple or large-order hypothesis. -/
+theorem exactGoodScaledShellFactor_spec (θ : ℝ) (d : ℕ) :
+    scaledExponentCount d (scaledShellWeight θ d + d ^ 3) ≤
+      exactGoodScaledShellFactor θ d *
+        goodScaledExponentCount d
+          (scaledShellWeight θ d) (scaledShellDegree θ d) := by
+  have hden := goodScaledExponentCount_pos d
+    (scaledShellWeight θ d) (scaledShellDegree θ d)
+  have hreflexive :
+      (scaledExponentCount d (scaledShellWeight θ d + d ^ 3) ⌈/⌉
+          goodScaledExponentCount d
+            (scaledShellWeight θ d) (scaledShellDegree θ d)) ≤
+        (scaledExponentCount d (scaledShellWeight θ d + d ^ 3) ⌈/⌉
+          goodScaledExponentCount d
+            (scaledShellWeight θ d) (scaledShellDegree θ d)) := le_rfl
+  simpa [exactGoodScaledShellFactor, mul_comm] using
+    (ceilDiv_le_iff_le_mul hden).mp hreflexive
+
+/-- Exact minimality among all natural factors for the actual shell-to-good
+cardinality comparison. -/
+theorem exactGoodScaledShellFactor_le_iff
+    {θ : ℝ} {d R : ℕ} :
+    exactGoodScaledShellFactor θ d ≤ R ↔
+      scaledExponentCount d (scaledShellWeight θ d + d ^ 3) ≤
+        R * goodScaledExponentCount d
+          (scaledShellWeight θ d) (scaledShellDegree θ d) := by
+  have hden := goodScaledExponentCount_pos d
+    (scaledShellWeight θ d) (scaledShellDegree θ d)
+  simpa [exactGoodScaledShellFactor, mul_comm] using
+    (ceilDiv_le_iff_le_mul hden :
+      (scaledExponentCount d (scaledShellWeight θ d + d ^ 3) ⌈/⌉
+          goodScaledExponentCount d
+            (scaledShellWeight θ d) (scaledShellDegree θ d)) ≤ R ↔ _)
+
+/-- The exact-good factor is always positive. -/
+theorem exactGoodScaledShellFactor_pos (θ : ℝ) (d : ℕ) :
+    0 < exactGoodScaledShellFactor θ d := by
+  have hspec := exactGoodScaledShellFactor_spec θ d
+  have hnum :
+      0 < scaledExponentCount d (scaledShellWeight θ d + d ^ 3) :=
+    scaledExponentCount_pos _ _
+  have hproduct :
+      0 < exactGoodScaledShellFactor θ d *
+        goodScaledExponentCount d
+          (scaledShellWeight θ d) (scaledShellDegree θ d) :=
+    hnum.trans_le hspec
+  exact pos_of_mul_pos_left hproduct (Nat.zero_le _)
+
+/-- The literal cardinality ratio is no larger than the sharp retained-mass
+union-bound factor. -/
+theorem exactGoodScaledShellFactor_le_retainedScaledShellFactor
+    {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1)
+    {d : ℕ} (hd : 2 ≤ d)
+    (hbad :
+      2 * ((d - 1) *
+          (scaledShellWeight θ d - (scaledShellDegree θ d + 1) +
+            (d - 1)) ^ (d - 1)) ≤
+        scaledShellWeight θ d ^ (d - 1)) :
+    exactGoodScaledShellFactor θ d ≤ retainedScaledShellFactor θ d := by
+  rw [exactGoodScaledShellFactor_le_iff]
+  apply scaledExponentCount_shell_le_mul_good_of_retainedMass
+  simpa [scaledShellRetainedMass] using
+    retainedScaledShellFactor_spec hθ hθ₁ hd hbad
+
+/-- In particular, the exact-good factor is no larger than the former exact
+half-mass shell factor. -/
+theorem exactGoodScaledShellFactor_le_exactScaledShellFactor
+    {θ : ℝ} (hθ : 0 < θ) (hθ₁ : θ < 1)
+    {d : ℕ} (hd : 2 ≤ d)
+    (hbad :
+      2 * ((d - 1) *
+          (scaledShellWeight θ d - (scaledShellDegree θ d + 1) +
+            (d - 1)) ^ (d - 1)) ≤
+        scaledShellWeight θ d ^ (d - 1)) :
+    exactGoodScaledShellFactor θ d ≤ exactScaledShellFactor θ d := by
+  rw [exactGoodScaledShellFactor_le_iff]
+  exact scaledExponentCount_shell_le_mul_goodScaledExponentCount
+    d (scaledShellWeight θ d) (scaledShellDegree θ d) (d ^ 3)
+      (exactScaledShellFactor θ d) hbad
+        (exactScaledShellFactor_spec hθ hθ₁ hd)
 
 /-! ## Eventual rounded estimates -/
 

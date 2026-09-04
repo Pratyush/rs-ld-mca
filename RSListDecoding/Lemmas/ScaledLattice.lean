@@ -64,6 +64,20 @@ theorem goodScaledExponentCount_le (d z S : ℕ) :
     goodScaledExponentCount d z S ≤ scaledExponentCount d z := by
   exact Finset.card_le_card (goodScaledExponentFinset_subset d z S)
 
+/-- The scaled simplex always contains its zero exponent. -/
+theorem scaledExponentCount_pos (d z : ℕ) :
+    0 < scaledExponentCount d z := by
+  rw [scaledExponentCount, Finset.card_pos]
+  refine ⟨fun _ ↦ 0, ?_⟩
+  simp [scaledWeight]
+
+/-- The doubly truncated scaled simplex still contains its zero exponent. -/
+theorem goodScaledExponentCount_pos (d z S : ℕ) :
+    0 < goodScaledExponentCount d z S := by
+  rw [goodScaledExponentCount, Finset.card_pos]
+  refine ⟨fun _ ↦ 0, ?_⟩
+  simp [mem_goodScaledExponentFinset, scaledWeight, scaledOrdinaryDegree]
+
 theorem scaledExponentFinset_mono (d : ℕ) {z z' : ℕ} (hzz' : z ≤ z') :
     scaledExponentFinset d z ⊆ scaledExponentFinset d z' := by
   intro c hc

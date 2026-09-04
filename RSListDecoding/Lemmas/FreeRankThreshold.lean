@@ -453,8 +453,8 @@ theorem exists_optimalExactSimplexFreeOrderRankThreshold
             (optimalScaledShellFactor θ d : ℝ))) := by
       gcongr
 
-/-- Fully optimized finite rank threshold: exact minimal shell ratio and the
-largest uniform global simplex allowed by the current higher-jet cutoff. -/
+/-- Rank threshold for the former exact half-mass shell proxy and the largest
+uniform global simplex allowed by the current higher-jet cutoff. -/
 theorem exists_exactOptimizedSimplexFreeOrderRankThreshold
     {ε θ : ℝ} (hε : 0 < ε) (hθ : 0 < θ) (hθ₁ : θ < 1) :
     ∃ d₀ : ℕ, ∀ d : ℕ, d₀ ≤ d →
@@ -580,6 +580,67 @@ theorem exists_exactOptimizedSimplexFreeOrderRankThreshold
         (((d : ℝ) ^ 3) /
           (((d : ℝ) ^ 2 + 1) *
             (exactScaledShellFactor θ d : ℝ))) := by
+      gcongr
+
+/-- Fully optimized rank threshold using the literal finite cardinality
+ratio.  The bad-tuple estimate is used only to compare this pointwise-minimal
+factor with the analytic proxy; it is no longer a hypothesis of the finite
+shell comparison consumed by the capstone. -/
+theorem exists_exactGoodOptimizedSimplexFreeOrderRankThreshold
+    {ε θ : ℝ} (hε : 0 < ε) (hθ : 0 < θ) (hθ₁ : θ < 1) :
+    ∃ d₀ : ℕ, ∀ d : ℕ, d₀ ≤ d →
+      1 < (1 / 6) *
+        ((optimizedInterpolationSimplexWidthAt θ d : ℝ) /
+          (d ^ 3 : ℕ)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) *
+            (exactGoodScaledShellFactor θ d : ℝ))) := by
+  obtain ⟨dShell, hShell⟩ := exists_exactScaledShellThreshold hθ hθ₁
+  obtain ⟨dRank, hRank⟩ :=
+    exists_exactOptimizedSimplexFreeOrderRankThreshold hε hθ hθ₁
+  refine ⟨max 2 (max dShell dRank), ?_⟩
+  intro d hdmax
+  have hd2 : 2 ≤ d := (Nat.le_max_left 2 _).trans hdmax
+  have hrest : max dShell dRank ≤ d :=
+    (Nat.le_max_right 2 _).trans hdmax
+  have hdShell : dShell ≤ d := (Nat.le_max_left _ _).trans hrest
+  have hdRank : dRank ≤ d := (Nat.le_max_right _ _).trans hrest
+  have hold := hRank d hdRank
+  have hbad := (hShell d hdShell).1
+  have hfactor : exactGoodScaledShellFactor θ d ≤
+      exactScaledShellFactor θ d :=
+    exactGoodScaledShellFactor_le_exactScaledShellFactor
+      hθ hθ₁ hd2 hbad
+  have hgoodPos : 0 < (exactGoodScaledShellFactor θ d : ℝ) := by
+    exact_mod_cast exactGoodScaledShellFactor_pos θ d
+  have hdenom :
+      ((d : ℝ) ^ 2 + 1) * (exactGoodScaledShellFactor θ d : ℝ) ≤
+        ((d : ℝ) ^ 2 + 1) * (exactScaledShellFactor θ d : ℝ) := by
+    gcongr
+  have hquotient :
+      ((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) * (exactScaledShellFactor θ d : ℝ)) ≤
+        ((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) *
+            (exactGoodScaledShellFactor θ d : ℝ)) := by
+    exact div_le_div_of_nonneg_left (by positivity)
+      (by positivity [hgoodPos]) hdenom
+  calc
+    1 < (1 / 6) *
+        ((optimizedInterpolationSimplexWidthAt θ d : ℝ) /
+          (d ^ 3 : ℕ)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) *
+            (exactScaledShellFactor θ d : ℝ))) := hold
+    _ ≤ (1 / 6) *
+        ((optimizedInterpolationSimplexWidthAt θ d : ℝ) /
+          (d ^ 3 : ℕ)) ^ 3 *
+        (((d : ℝ) / (d + 2)) * ((1 - θ) * ε)) *
+        (((d : ℝ) ^ 3) /
+          (((d : ℝ) ^ 2 + 1) *
+            (exactGoodScaledShellFactor θ d : ℝ))) := by
       gcongr
 
 /-- Smooth form of the optimized rank threshold.  Its leading simplex-volume

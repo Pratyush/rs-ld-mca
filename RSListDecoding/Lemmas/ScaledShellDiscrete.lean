@@ -429,6 +429,43 @@ theorem pow_le_good_mul_factorial_sq_add_bad
       gcongr
       exact factorial_mul_card_ordinarySimplex_le_pow r (W - (S + 1))
 
+/-- Keep the entire complement of the union-bound error, instead of rounding
+it down to one half of the ambient simplex.  This is the sharp
+cross-multiplied lower bound furnished by `pow_le_good_mul_factorial_sq_add_bad`.
+-/
+theorem pow_sub_bad_le_good_mul_factorial_sq (d W S : ℕ) :
+    W ^ (d - 1) -
+        (d - 1) * (W - (S + 1) + (d - 1)) ^ (d - 1) ≤
+      goodScaledExponentCount d W S * ((d - 1).factorial ^ 2) := by
+  have hmain := pow_le_good_mul_factorial_sq_add_bad d W S
+  omega
+
+/-- Shell comparison using the exact mass left after the bad-tuple union
+bound.  Unlike the older half-mass formulation, this loses the factor
+`1 / (1 - bad / total)` and no more. -/
+theorem scaledExponentCount_shell_le_mul_good_of_retainedMass
+    (d W S m R : ℕ)
+    (hratio :
+      (W + m + d * (d - 1) / 2) ^ (d - 1) ≤
+        R * (W ^ (d - 1) -
+          (d - 1) * (W - (S + 1) + (d - 1)) ^ (d - 1))) :
+    scaledExponentCount d (W + m) ≤
+      R * goodScaledExponentCount d W S := by
+  have hupper := scaledExponentCount_mul_factorial_sq_le_pow d (W + m)
+  have hlower := pow_sub_bad_le_good_mul_factorial_sq d W S
+  have hfac : 0 < (d - 1).factorial ^ 2 := pow_pos (Nat.factorial_pos _) _
+  refine Nat.le_of_mul_le_mul_right ?_ hfac
+  calc
+    scaledExponentCount d (W + m) * ((d - 1).factorial ^ 2) ≤
+        (W + m + d * (d - 1) / 2) ^ (d - 1) := hupper
+    _ ≤ R * (W ^ (d - 1) -
+          (d - 1) * (W - (S + 1) + (d - 1)) ^ (d - 1)) := hratio
+    _ ≤ R *
+          (goodScaledExponentCount d W S * ((d - 1).factorial ^ 2)) :=
+      Nat.mul_le_mul_left R hlower
+    _ = (R * goodScaledExponentCount d W S) *
+          ((d - 1).factorial ^ 2) := by ring
+
 /-- If the explicit bad-tuple error is at most half the main term, at least
 half of the factorial-normalized simplex survives the ordinary-degree cap. -/
 theorem pow_le_two_mul_good_mul_factorial_sq

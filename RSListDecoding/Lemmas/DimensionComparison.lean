@@ -15,13 +15,6 @@ noncomputable section
 
 namespace RSListDecoding
 
-/-- The good higher-jet set always contains the zero exponent. -/
-theorem goodScaledExponentCount_pos (d W C : ℕ) :
-    0 < goodScaledExponentCount d W C := by
-  rw [goodScaledExponentCount, Finset.card_pos]
-  refine ⟨fun _ ↦ 0, ?_⟩
-  simp [mem_goodScaledExponentFinset, scaledWeight, scaledOrdinaryDegree]
-
 theorem card_goodHigherExponents_pos (d W C : ℕ) :
     0 < (goodHigherExponents d W C).card := by
   rw [← goodScaledExponentCount_eq_card_goodHigherExponents]
