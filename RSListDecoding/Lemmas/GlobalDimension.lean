@@ -266,7 +266,7 @@ theorem globalRectangleExponent_eligible {d m A K B W C H : ℕ}
       _ ≤ (K - 1) * (C + 3 * H) :=
         Nat.mul_le_mul_left _ (Nat.succ_le_of_lt hblock_lt)
   refine ⟨?_, ?_, ?_, ?_, ?_⟩
-  · simp
+  · rw [firstJetExponent_globalRectangleExponent]
     omega
   · simpa using (Nat.le_trans (Nat.le_of_lt htotal_lt) hdegree)
   · simp only [globalRectangleExponent_x,
@@ -325,7 +325,7 @@ theorem globalSimplexExponent_eligible {d m A K B W C J : ℕ}
       _ ≤ (K - 1) * (C + J) :=
         Nat.mul_le_mul_left _ (Nat.succ_le_of_lt hblock_lt)
   refine ⟨?_, ?_, ?_, ?_, ?_⟩
-  · simp
+  · rw [firstJetExponent_globalRectangleExponent]
     omega
   · simpa using (Nat.le_trans (Nat.le_of_lt htotal_lt) hdegree)
   · simp only [globalRectangleExponent_x,
@@ -341,6 +341,70 @@ theorem globalSimplexExponent_eligible {d m A K B W C J : ℕ}
       _ ≤ m * A := hweighted
   · simpa using hcWeight
   · simpa using hcDegree
+
+/-- Pointwise simplex eligibility.  Unlike `globalSimplexExponent_eligible`,
+the slack width may depend on the actual higher-jet exponent `c`; consequently
+the degree and weighted-degree hypotheses spend `higherJetDegree c`, rather
+than the ambient worst-case cap `C`. -/
+theorem globalAdaptiveSimplexExponent_eligible
+    {d m A K B W C : ℕ} {J : HigherJetExponent d → ℕ}
+    (hd : 1 ≤ d)
+    (hJ : ∀ c : ↥(goodHigherExponents d W C), J c.1 ≤ m)
+    (hdegree : ∀ c : ↥(goodHigherExponents d W C),
+      higherJetDegree c.1 + J c.1 ≤ B)
+    (hweighted : ∀ c : ↥(goodHigherExponents d W C),
+      (K - 1) * (higherJetDegree c.1 + J c.1) ≤ m * A)
+    (c : ↥(goodHigherExponents d W C)) (r : Fin (K - 1))
+    (a : GlobalSlackSimplex (J c.1)) :
+    GlobalEligibleExponent d m A K B W C
+      (globalRectangleExponent hd K c.1 r
+        (a.2.1 0) (a.2.1 1) (a.2.1 2)) := by
+  have hc := mem_goodHigherExponents.mp c.2
+  have hsum := Finset.Nat.mem_antidiagonalTuple.mp a.2.2
+  rw [Fin.sum_univ_three] at hsum
+  have hslack : a.2.1 0 + a.2.1 1 + a.2.1 2 < J c.1 := by
+    rw [hsum]
+    exact a.1.isLt
+  have hJc : J c.1 ≤ m := hJ c
+  have hslt : a.2.1 0 < m := lt_of_lt_of_le (by omega) (hJ c)
+  have htotal_lt :
+      a.2.1 1 + a.2.1 2 + higherJetDegree c.1 <
+        higherJetDegree c.1 + J c.1 := by omega
+  have hblock_lt :
+      a.2.1 0 + a.2.1 1 + a.2.1 2 + higherJetDegree c.1 <
+        higherJetDegree c.1 + J c.1 := by omega
+  have hweighted_lt :
+      r.val + (K - 1) *
+          (a.2.1 0 + a.2.1 1 + a.2.1 2 + higherJetDegree c.1) <
+        (K - 1) * (higherJetDegree c.1 + J c.1) := by
+    calc
+      r.val + (K - 1) *
+          (a.2.1 0 + a.2.1 1 + a.2.1 2 + higherJetDegree c.1) <
+          (K - 1) + (K - 1) *
+            (a.2.1 0 + a.2.1 1 + a.2.1 2 +
+              higherJetDegree c.1) := Nat.add_lt_add_right r.isLt _
+      _ = (K - 1) *
+          (a.2.1 0 + a.2.1 1 + a.2.1 2 +
+            higherJetDegree c.1 + 1) := by ring
+      _ ≤ (K - 1) * (higherJetDegree c.1 + J c.1) :=
+        Nat.mul_le_mul_left _ (Nat.succ_le_of_lt hblock_lt)
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  · rw [firstJetExponent_globalRectangleExponent]
+    omega
+  · simpa using (Nat.le_trans (Nat.le_of_lt htotal_lt) (hdegree c))
+  · simp only [globalRectangleExponent_x,
+      totalJetDegree_globalRectangleExponent]
+    calc
+      r.val + (K - 1) * a.2.1 0 +
+          (K - 1) *
+            (a.2.1 1 + a.2.1 2 + higherJetDegree c.1) =
+          r.val + (K - 1) *
+            (a.2.1 0 + a.2.1 1 + a.2.1 2 +
+              higherJetDegree c.1) := by ring
+      _ < (K - 1) * (higherJetDegree c.1 + J c.1) := hweighted_lt
+      _ ≤ m * A := hweighted c
+  · simpa using hc.1
+  · simpa using hc.2
 
 /-- The finite rectangular index family used in the lower bound. -/
 abbrev GlobalRectangleIndex (d W C K H : ℕ) :=
@@ -406,6 +470,84 @@ theorem globalRectangleEmbedding_injective {d m A K B W C H : ℕ}
 abbrev GlobalSimplexIndex (d W C K J : ℕ) :=
   ↥(goodHigherExponents d W C) × Fin (K - 1) × GlobalSlackSimplex J
 
+/-- Degree-adaptive simplex family.  Each higher-jet monomial gets its own
+slack width. -/
+abbrev GlobalAdaptiveSimplexIndex (d W C K : ℕ)
+    (J : HigherJetExponent d → ℕ) :=
+  Σ c : ↥(goodHigherExponents d W C),
+    Fin (K - 1) × GlobalSlackSimplex (J c.1)
+
+/-- A canonical pointwise slack width, obtained by taking the minimum of the
+first-jet, ordinary-degree, and weighted-degree residual budgets. -/
+def adaptiveGlobalSlack {d : ℕ} (m A K B : ℕ)
+    (c : HigherJetExponent d) : ℕ :=
+  min m (min (B - higherJetDegree c)
+    (m * A / (K - 1) - higherJetDegree c))
+
+theorem adaptiveGlobalSlack_le_m {d m A K B : ℕ}
+    (c : HigherJetExponent d) : adaptiveGlobalSlack m A K B c ≤ m :=
+  min_le_left _ _
+
+theorem higherJetDegree_add_adaptiveGlobalSlack_le_degreeBudget
+    {d m A K B : ℕ} {c : HigherJetExponent d}
+    (hcB : higherJetDegree c ≤ B) :
+    higherJetDegree c + adaptiveGlobalSlack m A K B c ≤ B := by
+  have hle : adaptiveGlobalSlack m A K B c ≤ B - higherJetDegree c :=
+    (min_le_right _ _).trans (min_le_left _ _)
+  omega
+
+theorem weighted_adaptiveGlobalSlack_le_budget
+    {d m A K B : ℕ} (hK : 1 < K) {c : HigherJetExponent d}
+    (hcA : (K - 1) * higherJetDegree c ≤ m * A) :
+    (K - 1) * (higherJetDegree c + adaptiveGlobalSlack m A K B c) ≤
+      m * A := by
+  have hk : 0 < K - 1 := by omega
+  have hcdiv : higherJetDegree c ≤ m * A / (K - 1) :=
+    (Nat.le_div_iff_mul_le hk).2 (by simpa [mul_comm] using hcA)
+  have hle : adaptiveGlobalSlack m A K B c ≤
+      m * A / (K - 1) - higherJetDegree c :=
+    (min_le_right _ _).trans (min_le_right _ _)
+  have hadd : higherJetDegree c + adaptiveGlobalSlack m A K B c ≤
+      m * A / (K - 1) := by omega
+  exact (Nat.mul_le_mul_left (K - 1) hadd).trans (Nat.mul_div_le _ _)
+
+/-- Every admissible uniform simplex is contained in the canonical adaptive
+family. -/
+theorem uniformSlack_le_adaptiveGlobalSlack
+    {d m A K B W C J : ℕ} (hK : 1 < K)
+    (hJ : J ≤ m) (hdegree : C + J ≤ B)
+    (hweighted : (K - 1) * (C + J) ≤ m * A)
+    (e : ↥(goodHigherExponents d W C)) :
+    J ≤ adaptiveGlobalSlack m A K B e.1 := by
+  have heC := (mem_goodHigherExponents.mp e.2).2
+  have hk : 0 < K - 1 := by omega
+  rw [adaptiveGlobalSlack, le_min_iff, le_min_iff]
+  refine ⟨hJ, ?_, ?_⟩
+  · omega
+  · have hsum : (K - 1) * (higherJetDegree e.1 + J) ≤ m * A := by
+      exact (Nat.mul_le_mul_left (K - 1) (Nat.add_le_add_right heC J)).trans
+        hweighted
+    have hdiv : higherJetDegree e.1 + J ≤ m * A / (K - 1) :=
+      (Nat.le_div_iff_mul_le hk).2 (by simpa [mul_comm] using hsum)
+    omega
+
+theorem uniformGlobalSimplexCount_le_adaptive
+    {d m A K B W C J : ℕ} (hK : 1 < K)
+    (hJ : J ≤ m) (hdegree : C + J ≤ B)
+    (hweighted : (K - 1) * (C + J) ≤ m * A) :
+    (goodHigherExponents d W C).card * (K - 1) * (J + 2).choose 3 ≤
+      (K - 1) * ∑ e : ↥(goodHigherExponents d W C),
+        (adaptiveGlobalSlack m A K B e.1 + 2).choose 3 := by
+  calc
+    (goodHigherExponents d W C).card * (K - 1) * (J + 2).choose 3 =
+        (K - 1) * ∑ _e : ↥(goodHigherExponents d W C),
+          (J + 2).choose 3 := by
+      simp [mul_comm, mul_left_comm]
+    _ ≤ (K - 1) * ∑ e : ↥(goodHigherExponents d W C),
+        (adaptiveGlobalSlack m A K B e.1 + 2).choose 3 := by
+      gcongr with e
+      exact uniformSlack_le_adaptiveGlobalSlack hK hJ hdegree hweighted e
+
 /-- Map the simplex family into the eligible global monomials. -/
 def globalSimplexEmbedding {d m A K B W C J : ℕ}
     (hd : 1 ≤ d) (hJ : J ≤ m) (hdegree : C + J ≤ B)
@@ -466,6 +608,76 @@ theorem globalSimplexEmbedding_injective {d m A K B W C J : ℕ}
   subst a'
   rfl
 
+/-- Embed the degree-adaptive simplex family into the eligible monomials. -/
+def globalAdaptiveSimplexEmbedding
+    {d m A K B W C : ℕ} {J : HigherJetExponent d → ℕ}
+    (hd : 1 ≤ d)
+    (hJ : ∀ c : ↥(goodHigherExponents d W C), J c.1 ≤ m)
+    (hdegree : ∀ c : ↥(goodHigherExponents d W C),
+      higherJetDegree c.1 + J c.1 ≤ B)
+    (hweighted : ∀ c : ↥(goodHigherExponents d W C),
+      (K - 1) * (higherJetDegree c.1 + J c.1) ≤ m * A) :
+    GlobalAdaptiveSimplexIndex d W C K J →
+      ↥(globalEligibleExponents d m A K B W C)
+  | ⟨c, r, a⟩ =>
+      ⟨globalRectangleExponent hd K c.1 r
+          (a.2.1 0) (a.2.1 1) (a.2.1 2),
+        mem_globalEligibleExponents.mpr
+          (globalAdaptiveSimplexExponent_eligible
+            hd hJ hdegree hweighted c r a)⟩
+
+theorem globalAdaptiveSimplexEmbedding_injective
+    {d m A K B W C : ℕ} {J : HigherJetExponent d → ℕ}
+    (hd : 1 ≤ d)
+    (hJ : ∀ c : ↥(goodHigherExponents d W C), J c.1 ≤ m)
+    (hdegree : ∀ c : ↥(goodHigherExponents d W C),
+      higherJetDegree c.1 + J c.1 ≤ B)
+    (hweighted : ∀ c : ↥(goodHigherExponents d W C),
+      (K - 1) * (higherJetDegree c.1 + J c.1) ≤ m * A) :
+    Function.Injective
+      (globalAdaptiveSimplexEmbedding hd hJ hdegree hweighted) := by
+  rintro ⟨c, r, a⟩ ⟨c', r', a'⟩ heq
+  have hexp := congrArg Subtype.val heq
+  change
+    globalRectangleExponent hd K c.1 r
+        (a.2.1 0) (a.2.1 1) (a.2.1 2) =
+      globalRectangleExponent hd K c'.1 r'
+        (a'.2.1 0) (a'.2.1 1) (a'.2.1 2) at hexp
+  have hb₀ : a.2.1 1 = a'.2.1 1 := by
+    simpa using DFunLike.congr_fun hexp (some (jetZeroIndex d))
+  have hb₁ : a.2.1 2 = a'.2.1 2 := by
+    simpa using DFunLike.congr_fun hexp (some (jetOneIndex d hd))
+  have hc : c = c' := by
+    apply Subtype.ext
+    apply Finsupp.ext
+    intro i
+    simpa using DFunLike.congr_fun hexp
+      (some (higherJetIndexEmbedding d i))
+  subst c'
+  have hx : r.val + (K - 1) * a.2.1 0 =
+      r'.val + (K - 1) * a'.2.1 0 := by
+    simpa using DFunLike.congr_fun hexp none
+  have hr : r = r' := by
+    apply Fin.ext
+    have hmod := congrArg (fun z : ℕ => z % (K - 1)) hx
+    simpa [Nat.add_mul_mod_self_left, Nat.mod_eq_of_lt r.isLt,
+      Nat.mod_eq_of_lt r'.isLt] using hmod
+  have hs : a.2.1 0 = a'.2.1 0 := by
+    have hk : 0 < K - 1 := Nat.zero_lt_of_lt r.isLt
+    apply Nat.mul_left_cancel hk
+    apply Nat.add_left_cancel (n := r.val)
+    simpa [hr] using hx
+  have haTuple : a.2.1 = a'.2.1 := by
+    funext i
+    fin_cases i
+    · exact hs
+    · exact hb₀
+    · exact hb₁
+  have ha : a = a' := globalSlackSimplex_tuple_injective (J c.1) haTuple
+  subst r'
+  subst a'
+  rfl
+
 /-- The rectangular index family has the advertised product cardinality. -/
 theorem card_globalRectangleIndex (d W C K H : ℕ) :
     Fintype.card (GlobalRectangleIndex d W C K H) =
@@ -481,6 +693,15 @@ theorem card_globalSimplexIndex (d W C K J : ℕ) :
   simp only [Fintype.card_prod, Fintype.card_coe, Fintype.card_fin]
   rw [card_globalSlackSimplex]
   ring
+
+theorem card_globalAdaptiveSimplexIndex (d W C K : ℕ)
+    (J : HigherJetExponent d → ℕ) :
+    Fintype.card (GlobalAdaptiveSimplexIndex d W C K J) =
+      (K - 1) * ∑ c : ↥(goodHigherExponents d W C),
+        (J c.1 + 2).choose 3 := by
+  rw [Fintype.card_sigma]
+  simp_rw [Fintype.card_prod, Fintype.card_fin, card_globalSlackSimplex]
+  rw [Finset.mul_sum]
 
 /-- Pure support-counting form of the rectangular lower bound. -/
 theorem card_globalEligibleExponents_lowerBound {d m A K B W C H : ℕ}
@@ -504,6 +725,25 @@ theorem card_globalEligibleExponents_simplex_lowerBound
   exact Fintype.card_le_of_injective
     (globalSimplexEmbedding (W := W) hd hJ hdegree hweighted)
     (globalSimplexEmbedding_injective (W := W) hd hJ hdegree hweighted)
+
+/-- Adaptive global support bound: no minimum slack is taken across the
+higher-jet shell. -/
+theorem card_globalEligibleExponents_adaptiveSimplex_lowerBound
+    {d m A K B W C : ℕ} {J : HigherJetExponent d → ℕ}
+    (hd : 1 ≤ d)
+    (hJ : ∀ c : ↥(goodHigherExponents d W C), J c.1 ≤ m)
+    (hdegree : ∀ c : ↥(goodHigherExponents d W C),
+      higherJetDegree c.1 + J c.1 ≤ B)
+    (hweighted : ∀ c : ↥(goodHigherExponents d W C),
+      (K - 1) * (higherJetDegree c.1 + J c.1) ≤ m * A) :
+    (K - 1) * ∑ c : ↥(goodHigherExponents d W C),
+        (J c.1 + 2).choose 3 ≤
+      (globalEligibleExponents d m A K B W C).card := by
+  rw [← card_globalAdaptiveSimplexIndex d W C K J,
+    ← Fintype.card_coe]
+  exact Fintype.card_le_of_injective
+    (globalAdaptiveSimplexEmbedding hd hJ hdegree hweighted)
+    (globalAdaptiveSimplexEmbedding_injective hd hJ hdegree hweighted)
 
 /-- The canonical monomial basis identifies the rank of the interpolation
 space with the exact number of eligible exponents. -/
@@ -541,5 +781,22 @@ theorem finrank_interpolationSpace_simplex_lowerBound
       Module.finrank (ZMod q) (interpolationSpace q d m A K B W C) := by
   rw [finrank_interpolationSpace_eq_card]
   exact card_globalEligibleExponents_simplex_lowerBound hd hJ hdegree hweighted
+
+/-- Rank form of the degree-adaptive global simplex sum. -/
+theorem finrank_interpolationSpace_adaptiveSimplex_lowerBound
+    {q d m A K B W C : ℕ} [Fact (1 < q)]
+    {J : HigherJetExponent d → ℕ}
+    (hd : 1 ≤ d)
+    (hJ : ∀ c : ↥(goodHigherExponents d W C), J c.1 ≤ m)
+    (hdegree : ∀ c : ↥(goodHigherExponents d W C),
+      higherJetDegree c.1 + J c.1 ≤ B)
+    (hweighted : ∀ c : ↥(goodHigherExponents d W C),
+      (K - 1) * (higherJetDegree c.1 + J c.1) ≤ m * A) :
+    (K - 1) * ∑ c : ↥(goodHigherExponents d W C),
+        (J c.1 + 2).choose 3 ≤
+      Module.finrank (ZMod q) (interpolationSpace q d m A K B W C) := by
+  rw [finrank_interpolationSpace_eq_card]
+  exact card_globalEligibleExponents_adaptiveSimplex_lowerBound
+    hd hJ hdegree hweighted
 
 end RSListDecoding

@@ -1,4 +1,5 @@
 import RSListDecoding.Lemmas.MainAllRate
+import RSListDecoding.Lemmas.QuadraticMultiplicity
 
 /-!
 # Trusted statement surface
@@ -39,5 +40,11 @@ theorem all_rate_combinatorial_main : AllRateCombinatorialMainStatement :=
 /-- Capacity-form decoder and finite-field-operation bound. -/
 theorem all_rate_algorithmic_main : AllRateAlgorithmicMainStatement :=
   allRateAlgorithmicMainStatement_proved
+
+/-- Rounded quadratic-multiplicity theorem using the exact adaptive local
+and global weighted sums. -/
+theorem quadratic_adaptive_combinatorial_main :
+    QuadraticAdaptiveCombinatorialStatement :=
+  quadraticAdaptiveCombinatorialStatement_proved
 
 end RSListDecoding

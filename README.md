@@ -57,6 +57,28 @@ contact count removes the generic factor two: the finite rank quotient is
 supremal limiting rank coefficient is `Λ(θ,β,c)^3/6`.  Choosing width
 `(1-δ)Λ` retains exactly the fraction `(1-δ)^3` of this coefficient.
 
+The finite quadratic theorem now avoids both remaining worst-case
+replacements.  Its local certificate is the contact-layer sum
+
+~~~text
+sum_{t+d*b<m} (m+t+1) * N_d(W+t+d*b),
+~~~
+
+and its global certificate is the degree-adaptive sum
+
+~~~text
+(K-1) * sum_{e in G} choose(J(e)+2,3),
+~~~
+
+where `J(e)` is the exact residual width left by the multiplicity, ordinary
+degree, and weighted-degree budgets.  Lean proves that the local constraint
+map lands in this coupled envelope, that the adaptive global monomials are
+eligible and distinct, and that comparison of these two computable sums
+implies the sharp Reed--Solomon list bound.  This is exported as
+`quadratic_adaptive_combinatorial_main`.  It is a finite certificate theorem;
+an eventual closed-form estimate for the two adaptive sums is intentionally
+not asserted here.
+
 The only project-specific assumptions are the cardinality and algorithmic
 clauses of Kopparty's Theorem 4.3, both declared and documented in
 `RSListDecoding/Assumptions.lean`. The kernel dependency checks are in

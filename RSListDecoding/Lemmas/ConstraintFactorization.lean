@@ -173,6 +173,19 @@ private def firstPlusUWeight (d : ℕ) : LocalVariable d → ℕ
   | some (some j) => if (j : ℕ) = 0 then 1 else 0
   | none => 0
 
+/-- Signed visible-first-jet minus `T` weight after rewriting. -/
+private def firstMinusTWeight (d : ℕ) : LocalVariable d → ℤ
+  | none => -1
+  | some none => 0
+  | some (some j) => if (j : ℕ) = 0 then 1 else 0
+
+/-- The corresponding source weight: rewriting one `U` may create one
+visible first jet, while retaining the `-T` contribution. -/
+private def firstPlusUMinusTWeight (d : ℕ) : LocalVariable d → ℤ
+  | none => -1
+  | some none => 1
+  | some (some j) => if (j : ℕ) = 0 then 1 else 0
+
 /-- Signed weight `anisotropic weight - contact order` after the rewrite. -/
 private def anisotropicMinusContactWeight (d : ℕ) : LocalVariable d → ℤ
   | none => -1
@@ -264,6 +277,35 @@ private theorem weight_firstPlusUWeight {d : ℕ} (e : LocalVariable d →₀ �
   apply Finset.sum_congr rfl
   intro j hj
   by_cases h : (j : ℕ) = 0 <;> simp [h]
+
+private theorem weight_firstMinusTWeight {d : ℕ}
+    (e : LocalVariable d →₀ ℕ) :
+    Finsupp.weight (firstMinusTWeight d) e =
+      (localFirstJetExponent e : ℤ) - e (localT d) := by
+  classical
+  rw [Finsupp.weight_apply, localFirstJetExponent,
+    Finsupp.sum_fintype _ _ (by simp),
+    Finsupp.sum_fintype _ _ (by
+      intro i
+      rcases i with (_ | (_ | j)) <;> simp)]
+  simp_rw [Fintype.sum_option]
+  simp [firstMinusTWeight, localT, sub_eq_add_neg, Nat.cast_sum]
+  ring
+
+private theorem weight_firstPlusUMinusTWeight {d : ℕ}
+    (e : LocalVariable d →₀ ℕ) :
+    Finsupp.weight (firstPlusUMinusTWeight d) e =
+      (localFirstJetExponent e : ℤ) + e (localU d) - e (localT d) := by
+  classical
+  rw [Finsupp.weight_apply, localFirstJetExponent,
+    Finsupp.sum_fintype _ _ (by simp),
+    Finsupp.sum_fintype _ _ (by
+      intro i
+      rcases i with (_ | (_ | j)) <;> simp)]
+  simp_rw [Fintype.sum_option]
+  simp [firstPlusUMinusTWeight, localU, localT, sub_eq_add_neg,
+    Nat.cast_sum]
+  ring
 
 private theorem weight_anisotropicMinusContactWeight {d : ℕ}
     (e : LocalVariable d →₀ ℕ) :
@@ -651,6 +693,38 @@ private theorem localJetTerm_first_le_one
   simpa using support_weight_mul_le (visibleFirstWeight d)
     (a := 0) (b := 1) hleft hY he
 
+private theorem localJetTerm_firstMinusT_le_one
+    {R : Type*} [CommRing R] {d : ℕ} (j : Fin d)
+    {e : LocalVariable d →₀ ℕ}
+    (he : e ∈ (localJetTerm (R := R) j).support) :
+    Finsupp.weight (firstMinusTWeight d) e ≤ 1 := by
+  change e ∈
+    (C ((-1 : R) ^ ((j : ℕ) + 2)) *
+      X (localT d) ^ (j : ℕ) * X (localY j)).support at he
+  have hpow : ∀ z ∈ (X (localT d) ^ (j : ℕ) : LocalPolynomial R d).support,
+      Finsupp.weight (firstMinusTWeight d) z ≤ -(j : ℤ) := by
+    intro z hz
+    simpa [firstMinusTWeight, localT] using
+      (support_weight_pow_le (firstMinusTWeight d) (a := (-1 : ℤ))
+        (fun z hz => (support_weight_X_eq _ (localT d) hz).le)
+        (j : ℕ) hz)
+  have hleft : ∀ z ∈
+      (C ((-1 : R) ^ ((j : ℕ) + 2)) * X (localT d) ^ (j : ℕ)).support,
+      Finsupp.weight (firstMinusTWeight d) z ≤ -(j : ℤ) := by
+    intro z hz
+    simpa using support_weight_mul_le (firstMinusTWeight d)
+      (a := (0 : ℤ)) (b := -(j : ℤ))
+      (fun z hz => (support_weight_C_eq_zero _ _ hz).le) hpow hz
+  have hY : ∀ z ∈ (X (localY j) : LocalPolynomial R d).support,
+      Finsupp.weight (firstMinusTWeight d) z ≤ 1 := by
+    intro z hz
+    rw [support_weight_X_eq _ (localY j) hz]
+    by_cases h : (j : ℕ) = 0 <;>
+      simp [firstMinusTWeight, localY, h]
+  have h := support_weight_mul_le (firstMinusTWeight d)
+    (a := -(j : ℤ)) (b := (1 : ℤ)) hleft hY he
+  omega
+
 private theorem localJetTerm_anisotropicMinusContact_nonpos
     {R : Type*} [CommRing R] {d : ℕ} (j : Fin d)
     {e : LocalVariable d →₀ ℕ}
@@ -698,6 +772,24 @@ private theorem rewriteVariable_first_le_firstPlusU
         (fun j hj z hz => localJetTerm_first_le_one j hz) hz) he
   · rw [support_weight_X_eq _ (localY j) he]
     simp [visibleFirstWeight, firstPlusUWeight, localY]
+
+private theorem rewriteVariable_firstMinusT_le_firstPlusUMinusT
+    {R : Type*} [CommRing R] {d : ℕ} (v : LocalVariable d)
+    {e : LocalVariable d →₀ ℕ} (he : e ∈ (rewriteGenerator (R := R) v).support) :
+    Finsupp.weight (firstMinusTWeight d) e ≤
+      firstPlusUMinusTWeight d v := by
+  rcases v with (_ | (_ | j))
+  · rw [support_weight_X_eq _ (localT d) he]
+    simp [firstMinusTWeight, firstPlusUMinusTWeight, localT]
+  · exact support_weight_add_le (firstMinusTWeight d)
+      (fun z hz => by
+        rw [support_weight_X_eq _ (localE d) hz]
+        simp [firstMinusTWeight, localE])
+      (fun z hz => support_weight_sum_le (firstMinusTWeight d) Finset.univ
+        (fun j : Fin d => localJetTerm (R := R) j)
+        (fun j hj z hz => localJetTerm_firstMinusT_le_one j hz) hz) he
+  · rw [support_weight_X_eq _ (localY j) he]
+    simp [firstMinusTWeight, firstPlusUMinusTWeight, localY]
 
 private theorem rewriteVariable_anisotropicMinusContact_le
     {R : Type*} [CommRing R] {d : ℕ} (v : LocalVariable d)
@@ -758,6 +850,54 @@ theorem localConstraintMap_mem_contactEnvelopeSpace
   refine ⟨hContact, ?_, ?_⟩
   · rw [weight_visibleFirstWeight] at hFirst
     exact hFirst
+  · rw [weight_anisotropicMinusContactWeight] at hSigned
+    omega
+
+/-- The local constraint map actually lands in the strictly smaller coupled
+envelope.  The allowances are indexed by the output monomial's own `T`
+exponent and contact order. -/
+theorem localConstraintMap_mem_coupledContactEnvelopeSpace
+    {R : Type*} [CommRing R] {d m W : ℕ} {F : LocalPolynomial R d}
+    (hF : F ∈ localVSpace (R := R) (d := d) m W) :
+    localConstraintMap (R := R) (d := d) m F ∈
+      coupledContactEnvelopeSpace (R := R) (d := d) m W := by
+  classical
+  rw [coupledContactEnvelopeSpace, localExponentSpan,
+    MvPolynomial.mem_restrictSupport_iff]
+  intro e he
+  change e ∈ (projectLowContact (R := R) (d := d) m
+    (rewriteUToE F)).support at he
+  have heFilter := mem_support_filterMonomials
+    (R := R) (d := d) (fun z => contactOrder d z < m) (rewriteUToE F) he
+  rcases heFilter with ⟨hContact, heRewrite⟩
+  rw [localVSpace, localExponentSpan,
+    MvPolynomial.mem_restrictSupport_iff] at hF
+  have hFirstSigned :
+      Finsupp.weight (firstMinusTWeight d) e ≤ (m : ℤ) :=
+    support_weight_bind₁_le (firstPlusUMinusTWeight d)
+      (firstMinusTWeight d) (rewriteGenerator (R := R))
+      rewriteVariable_firstMinusT_le_firstPlusUMinusT
+      (fun u hu => by
+        rw [weight_firstPlusUMinusTWeight]
+        have hVu : VExponent (d := d) m W u := hF hu
+        rcases hVu with ⟨hT, hU, hY, hWeight⟩
+        omega) (by
+          change e ∈ (MvPolynomial.bind₁ (rewriteGenerator (R := R)) F).support
+          exact heRewrite)
+  have hSigned : Finsupp.weight (anisotropicMinusContactWeight d) e ≤ (W : ℤ) :=
+    support_weight_bind₁_le (anisotropicMinusTWeight d)
+      (anisotropicMinusContactWeight d) (rewriteGenerator (R := R))
+      rewriteVariable_anisotropicMinusContact_le
+      (fun u hu => by
+        rw [weight_anisotropicMinusTWeight]
+        have hVu : VExponent (d := d) m W u := hF hu
+        rcases hVu with ⟨hT, hU, hY, hWeight⟩
+        omega) (by
+          change e ∈ (MvPolynomial.bind₁ (rewriteGenerator (R := R)) F).support
+          exact heRewrite)
+  refine ⟨hContact, ?_, ?_⟩
+  · rw [weight_firstMinusTWeight] at hFirstSigned
+    omega
   · rw [weight_anisotropicMinusContactWeight] at hSigned
     omega
 

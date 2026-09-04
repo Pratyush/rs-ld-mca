@@ -159,6 +159,15 @@ def ContactEnvelopeExponent (m W : ℕ) (e : LocalVariable d →₀ ℕ) : Prop 
     localFirstJetExponent e ≤ 2 * m - 1 ∧
     localAnisotropicWeight e ≤ W + m - 1
 
+/-- Contact-layer-adaptive envelope.  Both visible-jet allowances retain the
+actual low-contact coordinates instead of replacing them by their common
+worst-case value `m-1`. -/
+def CoupledContactEnvelopeExponent (m W : ℕ)
+    (e : LocalVariable d →₀ ℕ) : Prop :=
+  contactOrder d e < m ∧
+    localFirstJetExponent e ≤ m + e (localT d) ∧
+    localAnisotropicWeight e ≤ W + contactOrder d e
+
 /-- The canonical monomial submodule selected by an exponent predicate.
 Using `restrictSupport` exposes Mathlib's restricted monomial basis directly
 for the later rank computation. -/
@@ -174,5 +183,12 @@ def localVSpace (m W : ℕ) : Submodule R (LocalPolynomial R d) :=
 monomial shapes used as the codomain of the local constraint map. -/
 def contactEnvelopeSpace (m W : ℕ) : Submodule R (LocalPolynomial R d) :=
   localExponentSpan (R := R) (ContactEnvelopeExponent (d := d) m W)
+
+/-- The smaller, contact-layer-adaptive codomain for the local constraint
+map. -/
+def coupledContactEnvelopeSpace (m W : ℕ) :
+    Submodule R (LocalPolynomial R d) :=
+  localExponentSpan (R := R)
+    (CoupledContactEnvelopeExponent (d := d) m W)
 
 end RSListDecoding

@@ -222,6 +222,27 @@ the global `m³/6` simplex, the finite rank quotient becomes
 
 which tends to `d/R`; the previous generic bound tended to `d/(2R)`.
 
+The checked finite quadratic capstone additionally retains the actual layer
+and degree distributions.  The local rank is bounded by
+
+\[
+\sum_{t+db<m}(m+t+1)N_d(W+t+db),
+\]
+
+while the global dimension is bounded below by
+
+\[
+(K-1)\sum_{e\in\mathcal G}\binom{J(e)+2}{3},
+\]
+
+with `J(e)` equal to the minimum residual budget at the actual ordinary
+degree of `e`.  These bounds are connected through the common-kernel,
+explainer, and sharp list-size reductions in
+`quadratic_adaptive_combinatorial_main`.  The statement is exact and fully
+rounded; it requires the displayed finite sum comparison as its directly
+checkable certificate.  No all-large-`d` asymptotic estimate for these two
+adaptive sums is currently part of the public theorem.
+
 The former proof used the looser shell exponent `(5-θ)/(5+θ)` and therefore
 saved only `2θ/(5+θ)`.  The new estimate follows by retaining the relative
 floor factor in the weight budget and proving directly that the logarithm of

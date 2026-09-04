@@ -108,6 +108,30 @@ theorem contactOrder_eq_t_add_d_mul_e {d : ℕ}
     Fintype.sum_option, Fintype.sum_option]
   simp [contactWeight, localT, localE]
 
+theorem coupledContactEnvelopeExponent_implies_contactEnvelopeExponent
+    {d m W : ℕ} {e : LocalVariable d →₀ ℕ}
+    (he : CoupledContactEnvelopeExponent (d := d) m W e) :
+    ContactEnvelopeExponent (d := d) m W e := by
+  rcases he with ⟨hcontact, hfirst, hhigher⟩
+  have ht : e (localT d) ≤ contactOrder d e := by
+    simpa [contactWeight, localT] using
+      contactWeight_mul_exponent_le_contactOrder e (localT d)
+  refine ⟨hcontact, ?_, ?_⟩ <;> omega
+
+/-- The adaptive envelope is genuinely a subspace of the former uniform
+envelope. -/
+theorem coupledContactEnvelopeSpace_le_contactEnvelopeSpace
+    {R : Type*} [CommRing R] {d : ℕ} (m W : ℕ) :
+    coupledContactEnvelopeSpace (R := R) (d := d) m W ≤
+      contactEnvelopeSpace (R := R) (d := d) m W := by
+  intro F hF
+  rw [coupledContactEnvelopeSpace, localExponentSpan,
+    MvPolynomial.mem_restrictSupport_iff] at hF
+  rw [contactEnvelopeSpace, localExponentSpan,
+    MvPolynomial.mem_restrictSupport_iff]
+  intro e he
+  exact coupledContactEnvelopeExponent_implies_contactEnvelopeExponent (hF he)
+
 /-- A low-contact exponent has bounded `E` exponent. -/
 theorem localE_exponent_le_div {d m : ℕ} (hd : 0 < d)
     (e : LocalVariable d →₀ ℕ)
@@ -134,6 +158,27 @@ derivative depth.  The quotient `m / d` is the side length of the
 abbrev DivisibleContactEnvelopeCode (d m W : ℕ) :=
   Fin d × ContactTriangle (m / d) × Fin (2 * m) ×
     BoundedScaledExponent d (W + m)
+
+/-- The exact pair of low-contact exponents `(T,E)`. -/
+abbrev ContactLayer (d m : ℕ) :=
+  {p : Fin m × Fin (m / d + 1) // p.1.val + d * p.2.val < m}
+
+def contactLayerOrder {d m : ℕ} (p : ContactLayer d m) : ℕ :=
+  p.1.1.val + d * p.1.2.val
+
+/-- Dependent code for the coupled envelope.  At contact layer `(t,b)`,
+the first-jet range has size `m+t+1`, while the higher-jet shell has its
+actual budget `W+t+d*b`. -/
+abbrev CoupledContactEnvelopeCode (d m W : ℕ) :=
+  Σ p : ContactLayer d m,
+    Fin (m + p.1.1.val + 1) ×
+      BoundedScaledExponent d (W + contactLayerOrder p)
+
+/-- The exact weighted local-envelope sum. -/
+def coupledContactEnvelopeCount (d m W : ℕ) : ℕ :=
+  ∑ p : ContactLayer d m,
+    (m + p.1.1.val + 1) *
+      scaledExponentCount d (W + contactLayerOrder p)
 
 /-- Encode a contact-envelope monomial using the exact triangular
 `(T / d,E)` region and the residue `T % d`. -/
@@ -206,6 +251,31 @@ def encodeContactEnvelope {d m W : ℕ} (hd : 0 < d)
       rw [mem_scaledExponentFinset, scaledWeight_localHigherExponent]
       exact e.2.2.2.trans (by omega)⟩)
 
+/-- Encode a monomial in the coupled envelope without replacing either
+layer-dependent allowance by its maximum. -/
+def encodeCoupledContactEnvelope {d m W : ℕ} (hd : 0 < d)
+    (e : {e : LocalVariable d →₀ ℕ //
+      CoupledContactEnvelopeExponent (d := d) m W e}) :
+    CoupledContactEnvelopeCode d m W := by
+  let t := e.1 (localT d)
+  let b := e.1 (localE d)
+  have hcontact : t + d * b < m := by
+    simpa [t, b, contactOrder_eq_t_add_d_mul_e] using e.2.1
+  let p : ContactLayer d m :=
+    ⟨(⟨t, by omega⟩,
+      ⟨b, Nat.lt_succ_of_le (localE_exponent_le_div hd e.1 e.2.1)⟩),
+      hcontact⟩
+  exact ⟨p,
+    ⟨localFirstJetExponent e.1, by
+      have hfirst := e.2.2.1
+      dsimp [p, t]
+      omega⟩,
+    ⟨localHigherExponent e.1, by
+      rw [mem_scaledExponentFinset, scaledWeight_localHigherExponent]
+      have hhigher := e.2.2.2
+      simpa [p, contactLayerOrder, t, b,
+        contactOrder_eq_t_add_d_mul_e] using hhigher⟩⟩
+
 theorem encodeContactEnvelope_injective {d m W : ℕ} (hd : 0 < d) :
     Function.Injective (encodeContactEnvelope (m := m) (W := W) hd) := by
   intro e f hef
@@ -224,6 +294,36 @@ theorem encodeContactEnvelope_injective {d m W : ℕ} (hd : 0 < d) :
     · simpa [encodeContactEnvelope, localFirstJetExponent_eq,
         localY] using hfirst
     · exact congrFun hhigher i
+
+theorem encodeCoupledContactEnvelope_injective
+    {d m W : ℕ} (hd : 0 < d) :
+    Function.Injective (encodeCoupledContactEnvelope (m := m) (W := W) hd) := by
+  intro e f hef
+  have hT : e.1 (localT d) = f.1 (localT d) :=
+    congrArg (fun z : CoupledContactEnvelopeCode d m W => z.1.1.1.val) hef
+  have hE : e.1 (localE d) = f.1 (localE d) :=
+    congrArg (fun z : CoupledContactEnvelopeCode d m W => z.1.1.2.val) hef
+  have hfirst : localFirstJetExponent e.1 = localFirstJetExponent f.1 :=
+    congrArg (fun z : CoupledContactEnvelopeCode d m W => z.2.1.val) hef
+  have hhigher : localHigherExponent e.1 = localHigherExponent f.1 :=
+    congrArg (fun z : CoupledContactEnvelopeCode d m W => z.2.2.1) hef
+  apply Subtype.ext
+  apply Finsupp.ext
+  intro v
+  rcases v with (_ | (_ | j))
+  · exact hT
+  · exact hE
+  · obtain ⟨n, rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hd)
+    refine Fin.cases ?_ (fun i => ?_) j
+    · simpa [localFirstJetExponent_eq, localY] using hfirst
+    · exact congrFun hhigher i
+
+theorem card_coupledContactEnvelopeCode (d m W : ℕ) :
+    Fintype.card (CoupledContactEnvelopeCode d m W) =
+      coupledContactEnvelopeCount d m W := by
+  rw [Fintype.card_sigma]
+  simp_rw [Fintype.card_prod, Fintype.card_fin, Fintype.card_coe]
+  rfl
 
 theorem encodeContactEnvelopeSharp_injective {d W : ℕ} (hd : 0 < d) :
     Function.Injective (encodeContactEnvelopeSharp (W := W) hd) := by
@@ -309,6 +409,23 @@ theorem natCard_contactEnvelopeExponent_le {d m W : ℕ} (hd : 0 < d) :
     _ = m * (m / d + 1) * (2 * m) * scaledExponentCount d (W + m) := by
       simp [ContactEnvelopeCode, scaledExponentCount, Nat.card_eq_fintype_card,
         mul_assoc]
+
+/-- Exact contact-layer-adaptive count. -/
+theorem natCard_coupledContactEnvelopeExponent_le
+    {d m W : ℕ} (hd : 0 < d) :
+    Nat.card
+        {e : LocalVariable d →₀ ℕ //
+          CoupledContactEnvelopeExponent (d := d) m W e} ≤
+      coupledContactEnvelopeCount d m W := by
+  calc
+    Nat.card
+        {e : LocalVariable d →₀ ℕ //
+          CoupledContactEnvelopeExponent (d := d) m W e}
+        ≤ Nat.card (CoupledContactEnvelopeCode d m W) :=
+      Nat.card_le_card_of_injective (encodeCoupledContactEnvelope hd)
+        (encodeCoupledContactEnvelope_injective hd)
+    _ = coupledContactEnvelopeCount d m W := by
+      rw [Nat.card_eq_fintype_card, card_coupledContactEnvelopeCode]
 
 /-- Exact triangular contact count for every multiplicity divisible by the
 derivative depth.  This removes the factor two in the generic rectangular
@@ -440,6 +557,34 @@ theorem finrank_contactEnvelopeSpace_le
   rw [Module.finrank_eq_card_basis b]
   simpa [Nat.card_eq_fintype_card] using
     (natCard_contactEnvelopeExponent_le (d := d) (m := m) (W := W) hd)
+
+/-- Rank bound retaining the exact contact-layer weighted sum. -/
+theorem finrank_coupledContactEnvelopeSpace_le
+    {R : Type*} [Field R] {d m W : ℕ} (hd : 0 < d) :
+    Module.finrank R
+        (coupledContactEnvelopeSpace (R := R) (d := d) m W) ≤
+      coupledContactEnvelopeCount d m W := by
+  let code :
+      {e : LocalVariable d →₀ ℕ //
+        CoupledContactEnvelopeExponent (d := d) m W e} →
+        CoupledContactEnvelopeCode d m W :=
+    encodeCoupledContactEnvelope hd
+  letI : Fintype
+      {e : LocalVariable d →₀ ℕ //
+        CoupledContactEnvelopeExponent (d := d) m W e} :=
+    Fintype.ofInjective code (by
+      simpa [code] using
+        encodeCoupledContactEnvelope_injective (m := m) (W := W) hd)
+  let b : Module.Basis
+      {e : LocalVariable d →₀ ℕ //
+        CoupledContactEnvelopeExponent (d := d) m W e}
+      R (coupledContactEnvelopeSpace (R := R) (d := d) m W) :=
+    MvPolynomial.basisRestrictSupport R
+      {e | CoupledContactEnvelopeExponent (d := d) m W e}
+  rw [Module.finrank_eq_card_basis b]
+  simpa [Nat.card_eq_fintype_card] using
+    (natCard_coupledContactEnvelopeExponent_le
+      (d := d) (m := m) (W := W) hd)
 
 /-- Exact generic local-rank bound when `d ∣ m`.  It is pointwise half the
 older rectangular estimate. -/

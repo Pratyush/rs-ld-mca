@@ -177,3 +177,22 @@ info: 'RSListDecoding.total_contactEnvelope_finrank_lt_interpolationSpace_quadra
 -/
 #guard_msgs in
 #print axioms RSListDecoding.total_contactEnvelope_finrank_lt_interpolationSpace_quadraticScalar
+
+/- The adaptive count and interpolation layers are assumption-free; the
+public list-size conclusion uses only Kopparty's cardinality clause. -/
+/--
+info: 'RSListDecoding.total_coupledContactEnvelope_finrank_lt_interpolationSpace_adaptive' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms RSListDecoding.total_coupledContactEnvelope_finrank_lt_interpolationSpace_adaptive
+
+/--
+info: 'RSListDecoding.quadratic_adaptive_combinatorial_main' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound,
+ RSListDecoding.kopparty_theorem_4_3_cardinality]
+-/
+#guard_msgs in
+#print axioms RSListDecoding.quadratic_adaptive_combinatorial_main

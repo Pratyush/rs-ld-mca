@@ -15,6 +15,35 @@ noncomputable section
 
 namespace RSListDecoding
 
+/-- Fully adaptive dimension comparison.  The local side is the exact sum
+over contact layers, and the global side is the exact sum of the simplex
+volumes attached to individual higher-jet monomials.  Thus this theorem
+performs no replacement by a worst layer or a minimum slack. -/
+theorem total_coupledContactEnvelope_finrank_lt_interpolationSpace_adaptive
+    {q d m A K B W C n : ℕ} [hq : Fact (Nat.Prime q)]
+    {J : HigherJetExponent d → ℕ}
+    (hd : 0 < d)
+    (hJ : ∀ c : ↥(goodHigherExponents d W C), J c.1 ≤ m)
+    (hdegree : ∀ c : ↥(goodHigherExponents d W C),
+      higherJetDegree c.1 + J c.1 ≤ B)
+    (hweighted : ∀ c : ↥(goodHigherExponents d W C),
+      (K - 1) * (higherJetDegree c.1 + J c.1) ≤ m * A)
+    (hsums :
+      n * coupledContactEnvelopeCount d m W <
+        (K - 1) * ∑ c : ↥(goodHigherExponents d W C),
+          (J c.1 + 2).choose 3) :
+    n * Module.finrank (ZMod q)
+          (coupledContactEnvelopeSpace (R := ZMod q) (d := d) m W) <
+      Module.finrank (ZMod q)
+          (interpolationSpace q d m A K B W C) := by
+  letI : Fact (1 < q) := ⟨hq.out.one_lt⟩
+  have hlocal := finrank_coupledContactEnvelopeSpace_le
+    (R := ZMod q) (d := d) (m := m) (W := W) hd
+  have hglobal := finrank_interpolationSpace_adaptiveSimplex_lowerBound
+    (q := q) (m := m) (A := A) (K := K) (B := B)
+    (W := W) (C := C) hd hJ hdegree hweighted
+  exact (Nat.mul_le_mul_left n hlocal).trans_lt (hsums.trans_le hglobal)
+
 /-- Multiplicity-generic version of the final simplex comparison.  Unlike the
 specialized capstones below, this theorem does not assume `m = d^3`: it uses
 the generic contact-envelope count
