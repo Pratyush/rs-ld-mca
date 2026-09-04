@@ -1,5 +1,6 @@
 import RSListDecoding.Main
 import RSListDecoding.Lemmas.RootCount
+import RSListDecoding.Lemmas.QuadraticMultiplicity
 
 /-!
 # Kernel trust audit
@@ -128,3 +129,29 @@ info: 'RSListDecoding.all_rate_algorithmic_main' depends on axioms: [propext,
 -/
 #guard_msgs in
 #print axioms RSListDecoding.all_rate_algorithmic_main
+
+/-! ## Quadratic-multiplicity optimization -/
+
+/- The multiplicity-generic finite capstone, exact shell specialization, and
+continuous feasibility calculation use no additional project assumptions. -/
+/--
+info: 'RSListDecoding.exists_quadratic_weight_and_simplex_coefficients' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms RSListDecoding.exists_quadratic_weight_and_simplex_coefficients
+
+/--
+info: 'RSListDecoding.exactQuadraticShellFactor_spec' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms RSListDecoding.exactQuadraticShellFactor_spec
+
+/--
+info: 'RSListDecoding.total_contactEnvelope_finrank_lt_interpolationSpace_of_generalScalar' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms RSListDecoding.total_contactEnvelope_finrank_lt_interpolationSpace_of_generalScalar

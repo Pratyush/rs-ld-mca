@@ -15,6 +15,56 @@ noncomputable section
 
 namespace RSListDecoding
 
+/-- Multiplicity-generic version of the final simplex comparison.  Unlike the
+specialized capstones below, this theorem does not assume `m = d^3`: it uses
+the generic contact-envelope count
+
+`m * (m / d + 1) * (2 * m) * N_d(W+m)`.
+
+This is the finite combinatorial statement needed by alternative
+multiplicity schedules, including the quadratic schedule. -/
+theorem total_contactEnvelope_finrank_lt_interpolationSpace_simplex_general
+    {q d m A K B W C J R n : ℕ} [hq : Fact (Nat.Prime q)]
+    (hd : 0 < d)
+    (hJ : J ≤ m) (hdegree : C + J ≤ B)
+    (hweighted : (K - 1) * (C + J) ≤ m * A)
+    (hshell : scaledExponentCount d (W + m) ≤
+      R * goodScaledExponentCount d W C)
+    (harithmetic :
+      n * (m * (m / d + 1) * (2 * m) * R) <
+        (K - 1) * (J + 2).choose 3) :
+    n * Module.finrank (ZMod q)
+          (contactEnvelopeSpace (R := ZMod q) (d := d) m W) <
+      Module.finrank (ZMod q)
+          (interpolationSpace q d m A K B W C) := by
+  letI : Fact (1 < q) := ⟨hq.out.one_lt⟩
+  have hlocal :=
+    finrank_contactEnvelopeSpace_le
+      (R := ZMod q) (d := d) (m := m) (W := W) hd
+  have hglobal := finrank_interpolationSpace_simplex_lowerBound
+    (q := q) (m := m) (A := A) (K := K) (B := B)
+    (W := W) (C := C) (J := J) hd hJ hdegree hweighted
+  have hG : 0 < goodScaledExponentCount d W C :=
+    goodScaledExponentCount_pos d W C
+  calc
+    n * Module.finrank (ZMod q)
+          (contactEnvelopeSpace (R := ZMod q) (d := d) m W)
+        ≤ n * (m * (m / d + 1) * (2 * m) *
+          scaledExponentCount d (W + m)) := Nat.mul_le_mul_left n hlocal
+    _ ≤ n * (m * (m / d + 1) * (2 * m) *
+          (R * goodScaledExponentCount d W C)) := by gcongr
+    _ = (n * (m * (m / d + 1) * (2 * m) * R)) *
+          goodScaledExponentCount d W C := by ring
+    _ < ((K - 1) * (J + 2).choose 3) *
+          goodScaledExponentCount d W C :=
+      Nat.mul_lt_mul_of_pos_right harithmetic hG
+    _ = (goodHigherExponents d W C).card * (K - 1) *
+          (J + 2).choose 3 := by
+      rw [← goodScaledExponentCount_eq_card_goodHigherExponents]
+      ring
+    _ ≤ Module.finrank (ZMod q)
+          (interpolationSpace q d m A K B W C) := hglobal
+
 theorem card_goodHigherExponents_pos (d W C : ℕ) :
     0 < (goodHigherExponents d W C).card := by
   rw [← goodScaledExponentCount_eq_card_goodHigherExponents]
