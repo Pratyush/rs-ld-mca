@@ -34,6 +34,7 @@ import RSListDecoding.Lemmas.RankArithmetic
 import RSListDecoding.Lemmas.InterpolationKernel
 import RSListDecoding.Lemmas.InterpolationVanishing
 import RSListDecoding.Lemmas.Interpolation
+import RSListDecoding.Lemmas.RootRefinement
 import RSListDecoding.Lemmas.RootCount
 import RSListDecoding.Lemmas.SolutionListBridge
 import RSListDecoding.Lemmas.Subcode

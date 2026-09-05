@@ -19,6 +19,11 @@ Source: Swastik Kopparty, *List-Decoding Multiplicity Codes*, Theory of
 Computing 11(5), 2015, Theorem 4.3, pp. 159--160 and proof pp. 165--167,
 <https://theoryofcomputing.org/articles/v011a005/v011a005.pdf>.
 
+The complete refinement argument, including the multiplicity-stratum count,
+extension-field coverage, and all edge conditions used below, is written in
+`ROOT_REFINEMENT.md`.  The displayed inequality is not the literal numeric
+statement printed as Theorem 4.3; it is a specialization of its proof.
+
 For a nonzero `Q(X,Y₀,...,Yᵣ)` over the field of `q` elements, the theorem
 bounds its degree-at-most-`D` polynomial solutions after substituting Hasse
 derivatives for the jet variables.  We use the following direct refinement

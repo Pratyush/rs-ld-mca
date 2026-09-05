@@ -1,4 +1,5 @@
 import RSListDecoding.Main
+import RSListDecoding.Lemmas.RootRefinement
 import RSListDecoding.Lemmas.RootCount
 import RSListDecoding.Lemmas.QuadraticMultiplicity
 
@@ -17,6 +18,34 @@ info: 'RSListDecoding.CombinatorialMainStatement' depends on axioms: [propext, C
 -/
 #guard_msgs in
 #print axioms RSListDecoding.CombinatorialMainStatement
+
+/-! ## Root-refinement kernel layer -/
+
+/- The extension-field coverage lemma, regular Hensel lift, exact fibre
+count, and finite counting shell are proved internally. -/
+/--
+info: 'RSListDecoding.exists_nonvanishing_specialization_point' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms RSListDecoding.exists_nonvanishing_specialization_point
+
+/--
+info: 'RSListDecoding.regular_lift_unique' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms RSListDecoding.regular_lift_unique
+
+/--
+info: 'RSListDecoding.card_regularSolutionsAtZero_fibre_le' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms RSListDecoding.card_regularSolutionsAtZero_fibre_le
+
+/--
+info: 'RSListDecoding.card_le_rootCountGeometricFactor' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms RSListDecoding.card_le_rootCountGeometricFactor
 
 /--
 info: 'RSListDecoding.combinatorial_main' depends on axioms: [propext,
