@@ -15,17 +15,10 @@ if rg -n -w 'sorry|sorryAx|admit|unsafe' "${lean_sources[@]}"; then
   exit 1
 fi
 
-audited_sources=()
-for source in "${lean_sources[@]}"; do
-  if [[ "$source" != RSListDecoding/Assumptions.lean ]]; then
-    audited_sources+=("$source")
-  fi
-done
-
 if rg -n \
   '^[[:space:]]*(@\[[^]]*\][[:space:]]*)*((private|protected|noncomputable)[[:space:]]+)*(axiom|axioms|constant|constants)([[:space:]]|$)' \
-  "${audited_sources[@]}"; then
-  echo 'Trust-extending declarations are allowed only in RSListDecoding/Assumptions.lean.' >&2
+  "${lean_sources[@]}"; then
+  echo 'Lean source contains a trust-extending declaration.' >&2
   exit 1
 fi
 

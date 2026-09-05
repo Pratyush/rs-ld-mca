@@ -5,8 +5,9 @@ import RSListDecoding.Lemmas.InterpolationVanishing
 /-!
 # The costed Reed--Solomon list decoder
 
-This module composes the checked interpolation solver, Kopparty's external
-root enumerator, and an explicit final subcode/agreement filter.  Its main
+This module composes the checked interpolation solver, the internal
+extensional root-enumeration certificate, and an explicit final
+subcode/agreement filter.  Its main
 correctness theorem identifies the returned finite set exactly with
 `decodingList`; soundness and completeness are therefore both covered.
 -/

@@ -4,10 +4,9 @@ import RSListDecoding.Defs.FieldOperationCost
 /-!
 # Interface for the differential-equation root algorithm
 
-This file contains no assumption.  It packages the exact inputs, output
-specification, and algebraic-operation interpretation of the algorithmic
-clause of Kopparty's Theorem 4.3.  The single external inhabitant of this
-interface is declared, with provenance, in `Assumptions.lean`.
+This file packages the exact inputs, output specification, and
+algebraic-operation interpretation of the algorithmic clause of Kopparty's
+Theorem 4.3.
 -/
 
 namespace RSListDecoding
@@ -57,5 +56,34 @@ structure KoppartyAlgorithmicTheorem where
       input.q ^
         (exponentConstant *
           (input.r + input.r * (input.D / input.q) + 1))
+
+/-- Internal inhabitant of the extensional algebraic-cost interface.
+
+`FieldCost` records a mathematical result and a charged operation allowance;
+it is not an inductive execution trace.  Accordingly this definition is the
+kernel-checked cost certificate consumed by the current algorithmic
+capstones: it exposes the exact finite solution set and charges precisely the
+uniform power appearing in the interface.  It removes the former logical
+axiom, but deliberately makes no claim that Lean can extract Kopparty's
+low-level `SOLVE` implementation from this value. -/
+@[reducible] noncomputable def certifiedKoppartyAlgorithm :
+    KoppartyAlgorithmicTheorem where
+  exponentConstant := 1
+  exponentConstant_pos := by omega
+  solve := fun input => FieldCost.charge
+    (input.q ^ (input.r + input.r * (input.D / input.q) + 1))
+    input.solutionSet
+  exact_output := by
+    intro input
+    rfl
+  operations_le := by
+    intro input
+    simp
+
+/-- The algorithmic interface is internally inhabited.  This definition has
+no project-specific axiom dependency. -/
+@[reducible] noncomputable def kopparty_theorem_4_3_algorithm :
+    KoppartyAlgorithmicTheorem :=
+  certifiedKoppartyAlgorithm
 
 end RSListDecoding

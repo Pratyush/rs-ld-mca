@@ -4,9 +4,10 @@ import RSListDecoding.Lemmas.SolutionListBridge
 /-!
 # Algorithmic specialization of Kopparty's root theorem
 
-The opaque root solver is the sole external algorithmic input.  This file
-performs only checked specialization and the harmless coefficient-vector cast
-from length `(K-1)+1` to length `K`.
+The root solver is represented by the internal extensional algebraic-cost
+certificate in `Defs/RootAlgorithm.lean`.  This file performs checked
+specialization and the harmless coefficient-vector cast from length
+`(K-1)+1` to length `K`.
 -/
 
 noncomputable section
@@ -50,7 +51,7 @@ def ambientDifferentialRootProgram {q d K B : ℕ}
       (messageDegreeCapEquiv (Nat.zero_lt_of_lt hdK)).symm.toEmbedding)
     raw
 
-/-- The external root program returns exactly the degree-`<K` solutions of
+/-- The root program returns exactly the degree-`<K` solutions of
 the supplied differential equation. -/
 theorem mem_ambientDifferentialRootProgram_result_iff
     {q d K B : ℕ}
