@@ -82,6 +82,34 @@ theorem isListDecodableAtAgreement_sharp_of_ambient_explainers_of_le_dimension
     hq hdK hB hKq alpha y Q hQ hcoord hBq
       (hweight.trans_le hMq) hsolves
 
+/-- Expansion-point-amortized ambient-explainer reduction.  The strict
+weighted-degree bound `< M` supplies the uniform separant margin
+`q²-(M-1)`. -/
+theorem isListDecodableAtAgreement_amortized_of_ambient_explainers_of_le_dimension
+    {n q d k K B A M : ℕ}
+    (hq : Nat.Prime q) (hdK : d < K) (hkK : k ≤ K)
+    (hKq : K ≤ q) (hB : 0 < B) (hBq : B < q) (hMq : M ≤ q ^ 2)
+    (alpha : Fin n → ZMod q)
+    (hexplainer : ∀ y : Fin n → ZMod q,
+      ∃ Q : DifferentialPolynomial q d,
+        Q ≠ 0 ∧
+        (∀ j : Fin (d + 1), Q.degreeOf (some j) ≤ B) ∧
+        Q.weightedTotalDegree (jetWeight (r := d) (K - 1)) < M ∧
+        ∀ p ∈ decodingList (k := K) hq.ne_zero alpha y A,
+          differentialSpecialization Q
+            (messagePolynomialAtDimension (Nat.zero_lt_of_lt hdK) p) = 0) :
+    IsListDecodableAtAgreement (k := k) hq.ne_zero alpha A
+      ((B * rootCountGeometricFactor q 2 d) / (q ^ 2 - (M - 1))) := by
+  apply isListDecodableAtAgreement_of_le_dimension hq.ne_zero hkK alpha
+  intro y
+  obtain ⟨Q, hQ, hcoord, hweight, hsolves⟩ := hexplainer y
+  have hM : 0 < M := by omega
+  have hweight' : Q.weightedTotalDegree
+      (jetWeight (r := d) (K - 1)) ≤ M - 1 := by omega
+  have hDelta : M - 1 < q ^ 2 := by omega
+  exact decodingList_card_le_amortized_of_differentialEquation
+    hq hdK hB hKq alpha y Q hQ hcoord hBq hweight' hDelta hsolves
+
 /-- Base-field version of the ambient-explainer reduction.  The stronger
 weighted-degree hypothesis eliminates the quadratic extension in the root
 count and halves the remaining field exponent. -/

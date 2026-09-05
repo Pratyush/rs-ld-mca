@@ -139,6 +139,28 @@ theorem decodingList_card_le_sharp_of_differentialEquation
       (differentialSolutions_card_le_sharp
         hq hdK hB Q hQ hcoord hBq hKq hweight)
 
+/-- Expansion-point-amortized decoding-list bound. -/
+theorem decodingList_card_le_amortized_of_differentialEquation
+    {n q d K B A Delta : ℕ} (hq : Nat.Prime q) (hdK : d < K)
+    (hB : 0 < B) (hKq : K ≤ q)
+    (alpha : Fin n → ZMod q) (y : Fin n → ZMod q)
+    (Q : DifferentialPolynomial q d) (hQ : Q ≠ 0)
+    (hcoord : ∀ j : Fin (d + 1), Q.degreeOf (some j) ≤ B)
+    (hBq : B < q)
+    (hweight : Q.weightedTotalDegree
+      (jetWeight (r := d) (K - 1)) ≤ Delta)
+    (hDelta : Delta < q ^ 2)
+    (hsolves : ∀ p ∈ decodingList (k := K) hq.ne_zero alpha y A,
+      differentialSpecialization Q
+        (messagePolynomialAtDimension (Nat.zero_lt_of_lt hdK) p) = 0) :
+    (decodingList (k := K) hq.ne_zero alpha y A).card ≤
+      (B * rootCountGeometricFactor q 2 d) / (q ^ 2 - Delta) := by
+  have hK : 0 < K := Nat.zero_lt_of_lt hdK
+  exact (decodingList_card_le_differentialSolutions_at_dimension
+    hq.ne_zero hK alpha y Q hsolves).trans
+      (differentialSolutions_card_le_amortized
+        hq hdK hB Q hQ hcoord hBq hKq hweight hDelta)
+
 /-- Exact base-field root bound.  This version applies when the weighted
 degree is below `q`, rather than merely below `q²`. -/
 theorem decodingList_card_le_baseField_of_differentialEquation

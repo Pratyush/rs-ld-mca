@@ -83,6 +83,24 @@ theorem differentialSolutions_card_le_sharp {q d K B : ℕ}
   exact kopparty_cardinality_of_degree_lt_field
     hq hdD hB Q hQ hcoord hBq hweight hDq
 
+/-- Expansion-point-amortized sharp bound with an explicit weighted-degree
+cap `Delta`. -/
+theorem differentialSolutions_card_le_amortized
+    {q d K B Delta : ℕ}
+    (hq : Nat.Prime q) (hdK : d < K) (hB : 0 < B)
+    (Q : DifferentialPolynomial q d) (hQ : Q ≠ 0)
+    (hcoord : ∀ j : Fin (d + 1), Q.degreeOf (some j) ≤ B)
+    (hBq : B < q) (hKq : K ≤ q)
+    (hweight : Q.weightedTotalDegree
+      (jetWeight (r := d) (K - 1)) ≤ Delta)
+    (hDelta : Delta < q ^ 2) :
+    (differentialSolutions hq.ne_zero (K - 1) Q).card ≤
+      (B * rootCountGeometricFactor q 2 d) / (q ^ 2 - Delta) := by
+  have hdD : d ≤ K - 1 := by omega
+  have hDq : K - 1 < q := by omega
+  exact kopparty_degree_lt_characteristic_cardinality_div
+    hq hdD hDq hB (by omega : 0 < 2) Q hQ hcoord hBq hweight hDelta
+
 /-- Base-field version of the sharp internal bound. -/
 theorem differentialSolutions_card_le_baseField {q d K B : ℕ}
     (hq : Nat.Prime q) (hdK : d < K) (hB : 0 < B)

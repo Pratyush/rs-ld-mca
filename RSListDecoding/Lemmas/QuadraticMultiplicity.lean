@@ -587,6 +587,182 @@ theorem total_contactEnvelope_finrank_lt_interpolationSpace_quadraticScalar
 
 /-! ## End-to-end rounded quadratic theorem -/
 
+/-- The exact adaptive global sum with every finite parameter explicit. -/
+noncomputable def explicitAdaptiveGlobalCount
+    (d m W C A K B : ℕ) : ℕ :=
+  (K - 1) *
+    ∑ e : ↥(goodHigherExponents d W C),
+      (adaptiveGlobalSlack m A K B e.1 + 2).choose 3
+
+/-- The exact coupled local sum with every finite parameter explicit. -/
+noncomputable def explicitCoupledLocalCount
+    (d m W : ℕ) : ℕ :=
+  coupledContactEnvelopeCount d m W
+
+/-- An exact finite certificate theorem with no real parameters or hidden
+rounding.  This is the target consumed by the certified parameter scanner. -/
+theorem explicit_adaptive_listDecodable_of_exact_sum
+    {q d m W C n k A K B : ℕ}
+    (hq : Nat.Prime q) (hd : 0 < d) (hm : 0 < m)
+    (hdK : d < K) (hkK : k ≤ K)
+    (hKq : K ≤ q) (hB : 0 < B) (hBq : B < q)
+    (hMq : m * A ≤ q ^ 2)
+    (hdegreeBudget : C ≤ B)
+    (hweightedBudget : (K - 1) * C ≤ m * A)
+    (hsums :
+      n * explicitCoupledLocalCount d m W <
+        explicitAdaptiveGlobalCount d m W C A K B)
+    (alpha : Fin n → ZMod q) (halpha : Function.Injective alpha) :
+    IsListDecodableAtAgreement (k := k) hq.ne_zero alpha A
+      (B * rootCountGeometricFactor q 2 d) := by
+  letI : Fact (Nat.Prime q) := ⟨hq⟩
+  let J : HigherJetExponent d → ℕ := adaptiveGlobalSlack m A K B
+  have hJ : ∀ e : ↥(goodHigherExponents d W C), J e.1 ≤ m :=
+    fun e => adaptiveGlobalSlack_le_m e.1
+  have hdegree : ∀ e : ↥(goodHigherExponents d W C),
+      higherJetDegree e.1 + J e.1 ≤ B := by
+    intro e
+    apply higherJetDegree_add_adaptiveGlobalSlack_le_degreeBudget
+    exact (mem_goodHigherExponents.mp e.2).2.trans hdegreeBudget
+  have hweighted : ∀ e : ↥(goodHigherExponents d W C),
+      (K - 1) * (higherJetDegree e.1 + J e.1) ≤ m * A := by
+    intro e
+    apply weighted_adaptiveGlobalSlack_le_budget (by omega)
+    exact (Nat.mul_le_mul_left (K - 1)
+      (mem_goodHigherExponents.mp e.2).2).trans hweightedBudget
+  have hdim :
+      n * Module.finrank (ZMod q)
+          (coupledContactEnvelopeSpace (R := ZMod q) (d := d) m W) <
+        Module.finrank (ZMod q)
+          (interpolationSpace q d m A K B W C) := by
+    apply total_coupledContactEnvelope_finrank_lt_interpolationSpace_adaptive
+      hd hJ hdegree hweighted
+    simpa [explicitCoupledLocalCount, explicitAdaptiveGlobalCount, J] using hsums
+  have hA : 0 < A := by
+    by_contra hA
+    have hAz : A = 0 := Nat.eq_zero_of_not_pos hA
+    have hright : explicitAdaptiveGlobalCount d m W C A K B = 0 := by
+      simp [explicitAdaptiveGlobalCount, adaptiveGlobalSlack, hAz]
+    rw [hright] at hsums
+    omega
+  have hmA : 0 < m * A := Nat.mul_pos hm hA
+  apply isListDecodableAtAgreement_sharp_of_ambient_explainers_of_le_dimension
+    hq hdK hkK hKq hB hBq hMq alpha
+  intro y
+  apply exists_ambient_explainer_of_nonzero_interpolant
+    hq (Nat.zero_lt_of_lt hdK) hmA alpha halpha y
+  exact exists_nonzero_interpolant_satisfying_constraints_coupled
+    hd hdim alpha y
+
+/-- Expansion-point-amortized explicit certificate. -/
+theorem explicit_adaptive_listDecodable_amortized_of_exact_sum
+    {q d m W C n k A K B : ℕ}
+    (hq : Nat.Prime q) (hd : 0 < d) (hm : 0 < m)
+    (hdK : d < K) (hkK : k ≤ K)
+    (hKq : K ≤ q) (hB : 0 < B) (hBq : B < q)
+    (hMq : m * A ≤ q ^ 2)
+    (hdegreeBudget : C ≤ B)
+    (hweightedBudget : (K - 1) * C ≤ m * A)
+    (hsums :
+      n * explicitCoupledLocalCount d m W <
+        explicitAdaptiveGlobalCount d m W C A K B)
+    (alpha : Fin n → ZMod q) (halpha : Function.Injective alpha) :
+    IsListDecodableAtAgreement (k := k) hq.ne_zero alpha A
+      ((B * rootCountGeometricFactor q 2 d) /
+        (q ^ 2 - (m * A - 1))) := by
+  letI : Fact (Nat.Prime q) := ⟨hq⟩
+  let J : HigherJetExponent d → ℕ := adaptiveGlobalSlack m A K B
+  have hJ : ∀ e : ↥(goodHigherExponents d W C), J e.1 ≤ m :=
+    fun e => adaptiveGlobalSlack_le_m e.1
+  have hdegree : ∀ e : ↥(goodHigherExponents d W C),
+      higherJetDegree e.1 + J e.1 ≤ B := by
+    intro e
+    apply higherJetDegree_add_adaptiveGlobalSlack_le_degreeBudget
+    exact (mem_goodHigherExponents.mp e.2).2.trans hdegreeBudget
+  have hweighted : ∀ e : ↥(goodHigherExponents d W C),
+      (K - 1) * (higherJetDegree e.1 + J e.1) ≤ m * A := by
+    intro e
+    apply weighted_adaptiveGlobalSlack_le_budget (by omega)
+    exact (Nat.mul_le_mul_left (K - 1)
+      (mem_goodHigherExponents.mp e.2).2).trans hweightedBudget
+  have hdim :
+      n * Module.finrank (ZMod q)
+          (coupledContactEnvelopeSpace (R := ZMod q) (d := d) m W) <
+        Module.finrank (ZMod q)
+          (interpolationSpace q d m A K B W C) := by
+    apply total_coupledContactEnvelope_finrank_lt_interpolationSpace_adaptive
+      hd hJ hdegree hweighted
+    simpa [explicitCoupledLocalCount, explicitAdaptiveGlobalCount, J] using hsums
+  have hA : 0 < A := by
+    by_contra hA
+    have hAz : A = 0 := Nat.eq_zero_of_not_pos hA
+    have hright : explicitAdaptiveGlobalCount d m W C A K B = 0 := by
+      simp [explicitAdaptiveGlobalCount, adaptiveGlobalSlack, hAz]
+    rw [hright] at hsums
+    omega
+  have hmA : 0 < m * A := Nat.mul_pos hm hA
+  apply isListDecodableAtAgreement_amortized_of_ambient_explainers_of_le_dimension
+    hq hdK hkK hKq hB hBq hMq alpha
+  intro y
+  apply exists_ambient_explainer_of_nonzero_interpolant
+    hq (Nat.zero_lt_of_lt hdK) hmA alpha halpha y
+  exact exists_nonzero_interpolant_satisfying_constraints_coupled
+    hd hdim alpha y
+
+/-- Base-field form of the explicit finite certificate. -/
+theorem explicit_adaptive_listDecodable_baseField_of_exact_sum
+    {q d m W C n k A K B : ℕ}
+    (hq : Nat.Prime q) (hd : 0 < d) (hm : 0 < m)
+    (hdK : d < K) (hkK : k ≤ K)
+    (hKq : K ≤ q) (hB : 0 < B) (hBq : B < q)
+    (hMq : m * A ≤ q)
+    (hdegreeBudget : C ≤ B)
+    (hweightedBudget : (K - 1) * C ≤ m * A)
+    (hsums :
+      n * explicitCoupledLocalCount d m W <
+        explicitAdaptiveGlobalCount d m W C A K B)
+    (alpha : Fin n → ZMod q) (halpha : Function.Injective alpha) :
+    IsListDecodableAtAgreement (k := k) hq.ne_zero alpha A
+      (B * rootCountGeometricFactor q 1 d) := by
+  letI : Fact (Nat.Prime q) := ⟨hq⟩
+  let J : HigherJetExponent d → ℕ := adaptiveGlobalSlack m A K B
+  have hJ : ∀ e : ↥(goodHigherExponents d W C), J e.1 ≤ m :=
+    fun e => adaptiveGlobalSlack_le_m e.1
+  have hdegree : ∀ e : ↥(goodHigherExponents d W C),
+      higherJetDegree e.1 + J e.1 ≤ B := by
+    intro e
+    apply higherJetDegree_add_adaptiveGlobalSlack_le_degreeBudget
+    exact (mem_goodHigherExponents.mp e.2).2.trans hdegreeBudget
+  have hweighted : ∀ e : ↥(goodHigherExponents d W C),
+      (K - 1) * (higherJetDegree e.1 + J e.1) ≤ m * A := by
+    intro e
+    apply weighted_adaptiveGlobalSlack_le_budget (by omega)
+    exact (Nat.mul_le_mul_left (K - 1)
+      (mem_goodHigherExponents.mp e.2).2).trans hweightedBudget
+  have hdim :
+      n * Module.finrank (ZMod q)
+          (coupledContactEnvelopeSpace (R := ZMod q) (d := d) m W) <
+        Module.finrank (ZMod q)
+          (interpolationSpace q d m A K B W C) := by
+    apply total_coupledContactEnvelope_finrank_lt_interpolationSpace_adaptive
+      hd hJ hdegree hweighted
+    simpa [explicitCoupledLocalCount, explicitAdaptiveGlobalCount, J] using hsums
+  have hA : 0 < A := by
+    by_contra hA
+    have hAz : A = 0 := Nat.eq_zero_of_not_pos hA
+    have hright : explicitAdaptiveGlobalCount d m W C A K B = 0 := by
+      simp [explicitAdaptiveGlobalCount, adaptiveGlobalSlack, hAz]
+    rw [hright] at hsums
+    omega
+  have hmA : 0 < m * A := Nat.mul_pos hm hA
+  apply isListDecodableAtAgreement_baseField_of_ambient_explainers_of_le_dimension
+    hq hdK hkK hKq hB hBq hMq alpha
+  intro y
+  apply exists_ambient_explainer_of_nonzero_interpolant
+    hq (Nat.zero_lt_of_lt hdK) hmA alpha halpha y
+  exact exists_nonzero_interpolant_satisfying_constraints_coupled
+    hd hdim alpha y
+
 /-- The exact adaptive global sum at the rounded quadratic parameters. -/
 noncomputable def quadraticAdaptiveGlobalCount
     (a : ℝ) (c d A K B : ℕ) : ℕ :=

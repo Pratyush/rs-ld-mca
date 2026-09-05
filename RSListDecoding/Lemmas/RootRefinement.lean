@@ -1695,6 +1695,26 @@ theorem card_filter_eval_eq_zero_le (p : Polynomial F) (hp : p ≠ 0)
   classical
   exact (card_filter_eval_eq_zero_le_natDegree p hp).trans hdegree
 
+/-- Field points at which a polynomial does not vanish. -/
+def nonvanishingPoints (p : Polynomial F) : Finset F :=
+  Finset.univ.filter fun a => p.eval a ≠ 0
+
+/-- A degree-`Delta` nonzero polynomial is nonzero at at least
+`|F|-Delta` points. -/
+theorem card_sub_degree_le_nonvanishingPoints
+    (p : Polynomial F) (hp : p ≠ 0) {Delta : ℕ}
+    (hdegree : p.natDegree ≤ Delta) :
+    Fintype.card F - Delta ≤ (nonvanishingPoints p).card := by
+  classical
+  let zeros := Finset.univ.filter fun a : F => p.eval a = 0
+  have hpartition := Finset.filter_card_add_filter_neg_card_eq_card
+    (s := Finset.univ) (fun a : F => p.eval a = 0)
+  have hzeros : zeros.card ≤ Delta :=
+    (card_filter_eval_eq_zero_le_natDegree p hp).trans hdegree
+  have hcard : zeros.card + (nonvanishingPoints p).card = Fintype.card F := by
+    simpa [zeros, nonvanishingPoints] using hpartition
+  omega
+
 end RootFibres
 
 section RegularFibreCount
@@ -1951,6 +1971,90 @@ theorem activeOrderChoice_spec {q r D j : ℕ} [CharP F q]
   refine ⟨hnpos, hnle, hmzero, ?_⟩
   exact firstNonvanishingPoint_spec _ hexistsPoint
 
+/-- An active solution together with any expansion point at which its least
+nonzero Hasse stratum remains nonzero. -/
+abbrev ActivePointPair {r : ℕ} (D : ℕ) (x : JetVariable r)
+    (Q : DifferentialPolynomialOver F r) :=
+  Σ P : ↥(activeOrderSolutions D x Q),
+    ↥(nonvanishingPoints
+      (differentialSpecializationOver
+        (partialHasse x
+          (firstNonzeroPartialHasseIndex x Q P.1) Q) P.1))
+
+/-- The key of an arbitrary nonvanishing expansion-point pair. -/
+def activePointKey {r j D : ℕ} (hjr : j ≤ r)
+    (Q : DifferentialPolynomialOver F r)
+    (z : ActivePointPair D (jetAtOrder r j hjr) Q) :
+    F × (Fin j → F) :=
+  (z.2.1, lowerJetAt z.2.1 z.1.1)
+
+/-- The active Taylor coefficient of an expansion-point pair. -/
+def activePointValue {r j D : ℕ} (hjr : j ≤ r)
+    (Q : DifferentialPolynomialOver F r)
+    (z : ActivePointPair D (jetAtOrder r j hjr) Q) : F :=
+  (hasseDerivative j z.1.1.1).eval z.2.1
+
+/-- Every active solution supplies at least `|F|-Delta` admissible expansion
+points when all relevant specializations have degree at most `Delta`. -/
+theorem activeOrder_card_mul_card_sub_le_activePointPair
+    {r D j Delta : ℕ} (hjr : j ≤ r)
+    (Q : DifferentialPolynomialOver F r)
+    (hDelta : Q.weightedTotalDegree (jetWeight (r := r) D) ≤ Delta) :
+    (activeOrderSolutions D (jetAtOrder r j hjr) Q).card *
+        (Fintype.card F - Delta) ≤
+      Fintype.card (ActivePointPair D (jetAtOrder r j hjr) Q) := by
+  classical
+  let x := jetAtOrder r j hjr
+  let active := activeOrderSolutions D x Q
+  rw [Fintype.card_sigma]
+  calc
+    active.card * (Fintype.card F - Delta) =
+        ∑ _P : ↥active, (Fintype.card F - Delta) := by
+      simp [active]
+    _ ≤ ∑ P : ↥active,
+        Fintype.card ↥(nonvanishingPoints
+          (differentialSpecializationOver
+            (partialHasse x
+              (firstNonzeroPartialHasseIndex x Q P.1) Q) P.1)) := by
+      apply Finset.sum_le_sum
+      intro P _hP
+      rw [Fintype.card_coe]
+      have hactive := (mem_activeOrderSolutions x Q P.1).mp P.2
+      have hexists : ∃ n, differentialSpecializationOver
+          (partialHasse x n Q) P.1 ≠ 0 :=
+        ⟨Q.degreeOf x, hactive.2⟩
+      have hne := firstNonzeroPartialHasseIndex_spec x Q P.1 hexists
+      apply card_sub_degree_le_nonvanishingPoints _ hne
+      exact (natDegree_differentialSpecializationOver_le_weightedTotalDegree
+          (partialHasse x
+            (firstNonzeroPartialHasseIndex x Q P.1) Q) P.1
+          (by
+            rw [Polynomial.natDegree_le_iff_degree_le]
+            exact degree_le_of_mem_degreeLT_succ P.1)).trans
+        ((weightedTotalDegree_partialHasse_le
+          (jetWeight (r := r) D) x
+          (firstNonzeroPartialHasseIndex x Q P.1) Q).trans hDelta)
+
+/-- The arbitrary point in an `ActivePointPair` satisfies the same regular
+stratum facts as the former canonical point. -/
+theorem activePointPair_spec {q r D j : ℕ} [CharP F q]
+    (hjr : j ≤ r) (Q : DifferentialPolynomialOver F r)
+    (hweight : Q.weightedTotalDegree (jetWeight (r := r) D) < Fintype.card F)
+    (z : ActivePointPair D (jetAtOrder r j hjr) Q) :
+    let x := jetAtOrder r j hjr
+    let n := firstNonzeroPartialHasseIndex x Q z.1.1
+    let a := z.2.1
+    0 < n ∧ n ≤ Q.degreeOf x ∧
+      differentialSpecializationOver (partialHasse x (n - 1) Q) z.1.1 = 0 ∧
+      (differentialSpecializationOver (partialHasse x n Q) z.1.1).eval a ≠ 0 := by
+  classical
+  let x := jetAtOrder r j hjr
+  let n := firstNonzeroPartialHasseIndex x Q z.1.1
+  have hbase := activeOrderChoice_spec hjr Q hweight z.1.1 z.1.2
+  dsimp only [x, n] at hbase
+  refine ⟨hbase.1, hbase.2.1, hbase.2.2.1, ?_⟩
+  exact (Finset.mem_filter.mp z.2.2).2
+
 end ActiveOrderCount
 
 section CountingShell
@@ -2029,6 +2133,169 @@ theorem eval_partialHasse_eq_of_initialJet {r j : ℕ}
   · simp [differentialJet]
   · simp only [differentialJet]
     exact hinit i (horder i (partialHasse_vars_subset x m Q hv))
+
+set_option maxHeartbeats 800000 in
+/-- For two arbitrary nonvanishing expansion-point pairs with the same key
+and active value, the least nonzero Hasse strata coincide. -/
+theorem firstNonzeroIndex_eq_of_activePoint_key_value
+    {q r D j : ℕ} [CharP F q]
+    (hjr : j ≤ r) (Q : DifferentialPolynomialOver F r)
+    (horder : HasJetOrderAtMost j Q)
+    (hweight : Q.weightedTotalDegree (jetWeight (r := r) D) < Fintype.card F)
+    (z z' : ActivePointPair D (jetAtOrder r j hjr) Q)
+    (hkey : activePointKey hjr Q z = activePointKey hjr Q z')
+    (hvalue : activePointValue hjr Q z = activePointValue hjr Q z') :
+    firstNonzeroPartialHasseIndex (jetAtOrder r j hjr) Q z.1.1 =
+      firstNonzeroPartialHasseIndex (jetAtOrder r j hjr) Q z'.1.1 := by
+  classical
+  let x := jetAtOrder r j hjr
+  let n := firstNonzeroPartialHasseIndex x Q z.1.1
+  let n' := firstNonzeroPartialHasseIndex x Q z'.1.1
+  let a := z.2.1
+  have hkey_fst := congrArg Prod.fst hkey
+  have ha : z'.2.1 = a := by
+    change z.2.1 = z'.2.1 at hkey_fst
+    exact hkey_fst.symm
+  have hkey_snd := congrArg Prod.snd hkey
+  have hlower : lowerJetAt (j := j) a z.1.1 =
+      lowerJetAt (j := j) a z'.1.1 := by
+    change lowerJetAt (j := j) z.2.1 z.1.1 =
+      lowerJetAt (j := j) z'.2.1 z'.1.1 at hkey_snd
+    rw [ha] at hkey_snd
+    exact hkey_snd
+  have hinit : ∀ k, k ≤ j →
+      (hasseDerivative k z.1.1.1).eval a =
+        (hasseDerivative k z'.1.1.1).eval a := by
+    intro k hkj
+    by_cases hk : k < j
+    · exact congrFun hlower ⟨k, hk⟩
+    · have hkeq : k = j := by omega
+      subst k
+      change (hasseDerivative j z.1.1.1).eval z.2.1 =
+        (hasseDerivative j z'.1.1.1).eval z'.2.1 at hvalue
+      rw [ha] at hvalue
+      exact hvalue
+  have hspec := activePointPair_spec hjr Q hweight z
+  have hspec' := activePointPair_spec hjr Q hweight z'
+  dsimp only [x, n, a] at hspec
+  dsimp only [x, n'] at hspec'
+  rw [ha] at hspec'
+  by_contra hne
+  rcases lt_or_gt_of_ne hne with hlt | hgt
+  · have hz := firstNonzeroPartialHasseIndex_min x Q z'.1.1
+        ⟨Q.degreeOf x, (mem_activeOrderSolutions x Q z'.1.1).mp z'.1.2 |>.2⟩ hlt
+    have heval := congrArg (fun S : Polynomial F => S.eval a) hz
+    rw [eval_differentialSpecializationOver] at heval
+    simp only [Polynomial.eval_zero] at heval
+    have heq := eval_partialHasse_eq_of_initialJet a Q horder x n
+      z.1.1.1 z'.1.1.1 hinit
+    exact hspec.2.2.2 (by
+      rw [eval_differentialSpecializationOver]
+      simpa [n] using heq.trans heval)
+  · have hz := firstNonzeroPartialHasseIndex_min x Q z.1.1
+        ⟨Q.degreeOf x, (mem_activeOrderSolutions x Q z.1.1).mp z.1.2 |>.2⟩ hgt
+    have heval := congrArg (fun S : Polynomial F => S.eval a) hz
+    rw [eval_differentialSpecializationOver] at heval
+    simp only [Polynomial.eval_zero] at heval
+    have heq := eval_partialHasse_eq_of_initialJet a Q horder x n'
+      z.1.1.1 z'.1.1.1 hinit
+    exact hspec'.2.2.2 (by
+      rw [eval_differentialSpecializationOver]
+      simpa [n'] using heq.symm.trans heval)
+
+set_option maxHeartbeats 2000000 in
+/-- Within a fixed arbitrary expansion-point/lower-jet key, the active
+Taylor value is injective on solution-point pairs. -/
+theorem activePointValue_injOn
+    {q r D j t : ℕ} [CharP F q]
+    (hq : q.Prime) (hjr : j ≤ r) (hjD : j ≤ D) (hDq : D < q)
+    (Q : DifferentialPolynomialOver F r) (horder : HasJetOrderAtMost j Q)
+    (hdegree : Q.degreeOf (jetAtOrder r j hjr) ≤ t) (htq : t < q)
+    (hweight : Q.weightedTotalDegree (jetWeight (r := r) D) < Fintype.card F)
+    (b : F × (Fin j → F)) :
+    Set.InjOn (activePointValue hjr Q)
+      {z : ActivePointPair D (jetAtOrder r j hjr) Q |
+        activePointKey hjr Q z = b} := by
+  classical
+  intro z hz z' hz' hvalue
+  have hkey : activePointKey hjr Q z = activePointKey hjr Q z' :=
+    hz.trans hz'.symm
+  have hn_eq := firstNonzeroIndex_eq_of_activePoint_key_value
+    hjr Q horder hweight z z' hkey hvalue
+  let x := jetAtOrder r j hjr
+  let n := firstNonzeroPartialHasseIndex x Q z.1.1
+  let a := z.2.1
+  have hkey_fst := congrArg Prod.fst hkey
+  have ha : z'.2.1 = a := by
+    change z.2.1 = z'.2.1 at hkey_fst
+    exact hkey_fst.symm
+  have hkey_snd := congrArg Prod.snd hkey
+  have hlower : lowerJetAt (j := j) a z.1.1 =
+      lowerJetAt (j := j) a z'.1.1 := by
+    change lowerJetAt (j := j) z.2.1 z.1.1 =
+      lowerJetAt (j := j) z'.2.1 z'.1.1 at hkey_snd
+    rw [ha] at hkey_snd
+    exact hkey_snd
+  have hinit : ∀ k, k ≤ j →
+      (hasseDerivative k z.1.1.1).eval a =
+        (hasseDerivative k z'.1.1.1).eval a := by
+    intro k hkj
+    by_cases hk : k < j
+    · exact congrFun hlower ⟨k, hk⟩
+    · have hkeq : k = j := by omega
+      subst k
+      change (hasseDerivative j z.1.1.1).eval z.2.1 =
+        (hasseDerivative j z'.1.1.1).eval z'.2.1 at hvalue
+      rw [ha] at hvalue
+      exact hvalue
+  have hspec := activePointPair_spec hjr Q hweight z
+  have hspec' := activePointPair_spec hjr Q hweight z'
+  dsimp only [x, n, a] at hspec
+  dsimp only [x] at hspec'
+  have hprev' : differentialSpecializationOver
+      (partialHasse x (n - 1) Q) z'.1.1 = 0 := by
+    have hprev := hspec'.2.2.1
+    rw [← hn_eq] at hprev
+    exact hprev
+  have hnonzero' :
+      (differentialSpecializationOver (partialHasse x n Q) z'.1.1).eval a ≠ 0 := by
+    let n' := firstNonzeroPartialHasseIndex x Q z'.1.1
+    let a' : F := z'.2.1
+    have hnonzero :
+        (differentialSpecializationOver
+          (partialHasse x n' Q) z'.1.1).eval a' ≠ 0 := by
+      exact (Finset.mem_filter.mp z'.2.2).2
+    have hnn' : n = n' := hn_eq
+    have haa' : a' = a := ha
+    simpa only [hnn', haa'] using hnonzero
+  have hpoly : z.1.1.1 = z'.1.1.1 := by
+    apply regular_lift_unique_at_of_orderAtMost hq hjr hjD hDq a
+      (partialHasse x (n - 1) Q) (horder.partialHasse x (n - 1))
+      z.1.1.1 z'.1.1.1
+    · exact degree_le_of_mem_degreeLT_succ z.1.1
+    · exact degree_le_of_mem_degreeLT_succ z'.1.1
+    · exact hspec.2.2.1
+    · exact hprev'
+    · have hnq : n < q := hspec.2.1.trans_lt (hdegree.trans_lt htq)
+      have hnpos : 0 < n := by simpa [n] using hspec.1
+      rw [pderiv_partialHasse]
+      have hnstep : n - 1 + 1 = n := Nat.sub_add_cancel hnpos
+      rw [hnstep, map_nsmul, nsmul_eq_mul]
+      apply mul_ne_zero
+      · exact (CharP.cast_eq_zero_iff F q n).not.mpr
+          (Nat.not_dvd_of_pos_of_lt hnpos hnq)
+      · rw [← eval_differentialSpecializationOver]
+        exact hnonzero'
+    · exact hinit
+  have hfirst : z.1 = z'.1 := by
+    apply Subtype.ext
+    apply Subtype.ext
+    exact hpoly
+  have hdegreeLT : z.1.1 = z'.1.1 := congrArg Subtype.val hfirst
+  apply Sigma.ext hfirst
+  apply (Subtype.heq_iff_coe_eq (fun u => by
+    rw [hdegreeLT])).2
+  exact ha.symm
 
 /-- On a fixed active-order key, equality of the active Taylor coefficient
 forces equality of the canonical Hasse stratum. -/
@@ -2199,6 +2466,168 @@ theorem fibrePolynomial_activeOrderKey_eval
   · rw [hassignment]
     exact update_lowerJetAssignmentAt_jetAtOrder hjr a P (some i)
       (horder i hvQ)
+
+/-- Fibre evaluation for a pair carrying an arbitrary nonvanishing expansion
+point. -/
+theorem fibrePolynomial_activePointKey_eval
+    {r D j : ℕ} (hjr : j ≤ r)
+    (Q : DifferentialPolynomialOver F r) (horder : HasJetOrderAtMost j Q)
+    (z : ActivePointPair D (jetAtOrder r j hjr) Q)
+    (b : F × (Fin j → F)) (hkey : activePointKey hjr Q z = b)
+    (m : ℕ) :
+    (fibrePolynomial (jetAtOrder r j hjr)
+      (lowerJetAssignmentAt hjr b.1 b.2)
+      (partialHasse (jetAtOrder r j hjr) m Q)).eval
+        (activePointValue hjr Q z) =
+      (differentialSpecializationOver
+        (partialHasse (jetAtOrder r j hjr) m Q) z.1.1).eval z.2.1 := by
+  classical
+  let x := jetAtOrder r j hjr
+  let a : F := z.2.1
+  have ha : a = b.1 := by
+    change z.2.1 = b.1
+    exact congrArg Prod.fst hkey
+  have hlower : lowerJetAt (j := j) a z.1.1 = b.2 := by
+    change lowerJetAt (j := j) z.2.1 z.1.1 = b.2
+    exact congrArg Prod.snd hkey
+  have hassignment : lowerJetAssignmentAt hjr b.1 b.2 =
+      lowerJetAssignmentAt hjr a (lowerJetAt a z.1.1) := by
+    rw [← ha, ← hlower]
+  rw [fibrePolynomial_eval, eval_differentialSpecializationOver]
+  change MvPolynomial.eval
+      (Function.update (lowerJetAssignmentAt hjr b.1 b.2) x
+        ((hasseDerivative j z.1.1.1).eval a)) (partialHasse x m Q) =
+    MvPolynomial.eval (differentialJet a z.1.1.1) (partialHasse x m Q)
+  change MvPolynomial.eval₂Hom (RingHom.id F)
+      (Function.update (lowerJetAssignmentAt hjr b.1 b.2) x
+        ((hasseDerivative j z.1.1.1).eval a)) (partialHasse x m Q) =
+    MvPolynomial.eval₂Hom (RingHom.id F)
+      (differentialJet a z.1.1.1) (partialHasse x m Q)
+  apply MvPolynomial.eval₂Hom_congr' rfl _ rfl
+  intro v hv _
+  have hvQ := partialHasse_vars_subset x m Q hv
+  rcases v with (_ | i)
+  · rw [hassignment]
+    exact update_lowerJetAssignmentAt_jetAtOrder hjr a z.1.1.1 none trivial
+  · rw [hassignment]
+    exact update_lowerJetAssignmentAt_jetAtOrder hjr a z.1.1.1 (some i)
+      (horder i hvQ)
+
+set_option maxHeartbeats 1000000 in
+/-- Every expansion-point/lower-jet fibre contains at most the active
+coordinate degree many solution-point pairs. -/
+theorem card_activePointPair_fibre_le
+    {q r D j t : ℕ} [CharP F q]
+    (hq : q.Prime) (hjr : j ≤ r) (hjD : j ≤ D) (hDq : D < q)
+    (Q : DifferentialPolynomialOver F r) (horder : HasJetOrderAtMost j Q)
+    (hdegree : Q.degreeOf (jetAtOrder r j hjr) ≤ t) (htq : t < q)
+    (hweight : Q.weightedTotalDegree (jetWeight (r := r) D) < Fintype.card F)
+    (b : F × (Fin j → F)) :
+    (Finset.univ.filter fun z :
+      ActivePointPair D (jetAtOrder r j hjr) Q =>
+        activePointKey hjr Q z = b).card ≤ t := by
+  classical
+  let x := jetAtOrder r j hjr
+  let s := Finset.univ.filter fun z :
+      ActivePointPair D (jetAtOrder r j hjr) Q =>
+    activePointKey hjr Q z = b
+  let p := fibrePolynomial x (lowerJetAssignmentAt hjr b.1 b.2) Q
+  by_cases hs : s.Nonempty
+  · obtain ⟨z₀, hz₀⟩ := hs
+    have hz₀key := (Finset.mem_filter.mp hz₀).2
+    have hchoice := activePointPair_spec hjr Q hweight z₀
+    let n := firstNonzeroPartialHasseIndex x Q z₀.1.1
+    have hnonzeroEval : (hasseDerivative n p).eval
+        (activePointValue hjr Q z₀) ≠ 0 := by
+      rw [← fibrePolynomial_partialHasse]
+      rw [fibrePolynomial_activePointKey_eval hjr Q horder z₀ b hz₀key n]
+      exact hchoice.2.2.2
+    have hp_ne : p ≠ 0 := by
+      intro hp
+      rw [hp] at hnonzeroEval
+      simp at hnonzeroEval
+    let roots : Finset F := Finset.univ.filter fun v => p.eval v = 0
+    have hmap : Set.MapsTo (activePointValue (D := D) hjr Q)
+        (↑s : Set _) (↑roots : Set F) := by
+      intro z hz
+      have hzkey := (Finset.mem_filter.mp hz).2
+      have hactive := (mem_activeOrderSolutions x Q z.1.1).mp z.1.2
+      apply Finset.mem_filter.mpr
+      refine ⟨Finset.mem_univ _, ?_⟩
+      have heval := fibrePolynomial_activePointKey_eval
+        hjr Q horder z b hzkey 0
+      have hzero : differentialSpecializationOver
+          (partialHasse x 0 Q) z.1.1 = 0 := by simpa using hactive.1
+      simpa [p] using heval.trans (congrArg
+        (fun S : Polynomial F => S.eval z.2.1) hzero)
+    have hinj : Set.InjOn (activePointValue (D := D) hjr Q) (↑s : Set _) := by
+      simpa [s] using
+        (activePointValue_injOn hq hjr hjD hDq Q horder hdegree htq hweight b)
+    calc
+      (Finset.univ.filter fun z : ActivePointPair D x Q =>
+          activePointKey hjr Q z = b).card = s.card := rfl
+      _ ≤ roots.card := Finset.card_le_card_of_injOn _ hmap hinj
+      _ ≤ p.natDegree := card_filter_eval_eq_zero_le_natDegree p hp_ne
+      _ ≤ Q.degreeOf x := fibrePolynomial_natDegree_le_degreeOf x
+        (lowerJetAssignmentAt hjr b.1 b.2) Q
+      _ ≤ t := hdegree
+  · have hsempty : s = ∅ := Finset.not_nonempty_iff_eq_empty.mp hs
+    change s.card ≤ t
+    simp [hsempty]
+
+/-- The total number of active solution/nonvanishing-point pairs is bounded
+by the same key space as before; amortization comes from the number of points
+attached to each solution. -/
+theorem card_activePointPair_le
+    {q r D j t : ℕ} [CharP F q]
+    (hq : q.Prime) (hjr : j ≤ r) (hjD : j ≤ D) (hDq : D < q)
+    (Q : DifferentialPolynomialOver F r) (horder : HasJetOrderAtMost j Q)
+    (hdegree : Q.degreeOf (jetAtOrder r j hjr) ≤ t) (htq : t < q)
+    (hweight : Q.weightedTotalDegree (jetWeight (r := r) D) < Fintype.card F) :
+    Fintype.card (ActivePointPair D (jetAtOrder r j hjr) Q) ≤
+      t * Fintype.card F ^ (j + 1) := by
+  classical
+  calc
+    Fintype.card (ActivePointPair D (jetAtOrder r j hjr) Q) =
+        (Finset.univ : Finset
+          (ActivePointPair D (jetAtOrder r j hjr) Q)).card := by simp
+    _ ≤ t * Fintype.card (F × (Fin j → F)) := by
+      apply card_le_mul_card_of_fibers
+        (Finset.univ : Finset
+          (ActivePointPair D (jetAtOrder r j hjr) Q))
+        (activePointKey hjr Q) t
+      intro b
+      exact card_activePointPair_fibre_le hq hjr hjD hDq Q horder
+        hdegree htq hweight b
+    _ = t * Fintype.card F ^ (j + 1) := by
+      simp only [Fintype.card_prod, Fintype.card_fun, Fintype.card_fin,
+        Nat.pow_succ]
+      ac_rfl
+
+/-- Amortized active-order count.  Every active solution contributes at
+least `|F|-Delta` expansion points, while every point/lower-jet key supports
+at most `t` solutions. -/
+theorem card_sub_mul_activeOrderSolutions_le
+    {q r D j t Delta : ℕ} [CharP F q]
+    (hq : q.Prime) (hjr : j ≤ r) (hjD : j ≤ D) (hDq : D < q)
+    (Q : DifferentialPolynomialOver F r) (horder : HasJetOrderAtMost j Q)
+    (hdegree : Q.degreeOf (jetAtOrder r j hjr) ≤ t) (htq : t < q)
+    (hDelta : Q.weightedTotalDegree (jetWeight (r := r) D) ≤ Delta)
+    (hDeltaCard : Delta < Fintype.card F) :
+    (Fintype.card F - Delta) *
+        (activeOrderSolutions D (jetAtOrder r j hjr) Q).card ≤
+      t * Fintype.card F ^ (j + 1) := by
+  calc
+    (Fintype.card F - Delta) *
+        (activeOrderSolutions D (jetAtOrder r j hjr) Q).card =
+      (activeOrderSolutions D (jetAtOrder r j hjr) Q).card *
+        (Fintype.card F - Delta) := Nat.mul_comm _ _
+    _ ≤ Fintype.card
+        (ActivePointPair D (jetAtOrder r j hjr) Q) :=
+      activeOrder_card_mul_card_sub_le_activePointPair hjr Q hDelta
+    _ ≤ t * Fintype.card F ^ (j + 1) :=
+      card_activePointPair_le hq hjr hjD hDq Q horder hdegree htq
+        (hDelta.trans_lt hDeltaCard)
 
 /-- Each fixed active-order key contains at most the active coordinate
 degree many solutions.  The root polynomial is the original fibre; the
@@ -2423,6 +2852,92 @@ theorem card_differentialSolutionsOver_le_activeOrderSum
               symm
               rw [Finset.sum_range_succ]
 
+/-- Expansion-point-amortized root count over an arbitrary finite field.
+The same recursive partition is double-counted over every point where the
+relevant separant stratum is nonzero. -/
+theorem card_sub_mul_differentialSolutionsOver_le_activeOrderSum
+    {q r D j t Delta : ℕ} [CharP F q]
+    (hq : q.Prime) (hjr : j ≤ r) (hjD : j ≤ D) (hDq : D < q)
+    (Q : DifferentialPolynomialOver F r) (hQ : Q ≠ 0)
+    (horder : HasJetOrderAtMost j Q)
+    (hcoord : ∀ i : Fin (r + 1), Q.degreeOf (some i) ≤ t)
+    (htq : t < q)
+    (hDelta : Q.weightedTotalDegree (jetWeight (r := r) D) ≤ Delta)
+    (hDeltaCard : Delta < Fintype.card F) :
+    (Fintype.card F - Delta) *
+        (differentialSolutionsOver D Q).card ≤
+      t * ∑ k ∈ Finset.range (j + 1), Fintype.card F ^ (k + 1) := by
+  classical
+  induction j using Nat.strong_induction_on generalizing Q with
+  | h j ih =>
+      let x := jetAtOrder r j hjr
+      let Qtop := partialHasse x (Q.degreeOf x) Q
+      have hactive := card_sub_mul_activeOrderSolutions_le
+        hq hjr hjD hDq Q horder
+          (hcoord ⟨j, Nat.lt_succ_of_le hjr⟩) htq hDelta hDeltaCard
+      have hsplit := card_differentialSolutionsOver_le_active_add_top
+        (D := D) x Q
+      by_cases hj : j = 0
+      · subst j
+        have htop_ne : Qtop ≠ 0 := partialHasse_top_ne_zero x Q hQ
+        have hnoJet : ∀ i : Fin (r + 1), some i ∉ Qtop.vars := by
+          simpa [Qtop, x] using horder.top_zero_noJet
+        have htop_empty : differentialSolutionsOver D Qtop = ∅ := by
+          apply Finset.not_nonempty_iff_eq_empty.mp
+          intro hne
+          obtain ⟨P, hP⟩ := hne
+          have hz := (mem_differentialSolutionsOver Qtop P).mp hP
+          exact (differentialSpecializationOver_ne_zero_of_noJet
+            Qtop htop_ne hnoJet P) hz
+        have hsplit' : (differentialSolutionsOver D Q).card ≤
+            (activeOrderSolutions D x Q).card := by
+          have htop_card : (differentialSolutionsOver D Qtop).card = 0 := by
+            rw [htop_empty]
+            simp
+          exact hsplit.trans_eq (by rw [htop_card, Nat.add_zero])
+        exact (Nat.mul_le_mul_left _ hsplit').trans (by simpa using hactive)
+      · obtain ⟨j', rfl⟩ := Nat.exists_eq_succ_of_ne_zero hj
+        have hj'r : j' ≤ r := by omega
+        have hj'D : j' ≤ D := by omega
+        have htop_ne : Qtop ≠ 0 := partialHasse_top_ne_zero x Q hQ
+        have htop_order : HasJetOrderAtMost j' Qtop := by
+          simpa [Qtop, x] using horder.top_succ hjr
+        have htop_coord : ∀ i : Fin (r + 1), Qtop.degreeOf (some i) ≤ t := by
+          intro i
+          exact (partialHasse_degreeOf_le x (Q.degreeOf x) Q (some i)).trans
+            (hcoord i)
+        have htop_Delta : Qtop.weightedTotalDegree
+            (jetWeight (r := r) D) ≤ Delta :=
+          (weightedTotalDegree_partialHasse_le
+            (jetWeight (r := r) D) x (Q.degreeOf x) Q).trans hDelta
+        have hrecursive := ih j' (Nat.lt_succ_self j') hj'r hj'D Qtop
+          htop_ne htop_order htop_coord htop_Delta
+        calc
+          (Fintype.card F - Delta) *
+              (differentialSolutionsOver D Q).card ≤
+            (Fintype.card F - Delta) *
+              ((activeOrderSolutions D x Q).card +
+                (differentialSolutionsOver D Qtop).card) :=
+              Nat.mul_le_mul_left _ hsplit
+          _ = (Fintype.card F - Delta) *
+                (activeOrderSolutions D x Q).card +
+              (Fintype.card F - Delta) *
+                (differentialSolutionsOver D Qtop).card := Nat.mul_add _ _ _
+          _ ≤ t * Fintype.card F ^ (j' + 1 + 1) +
+                t * ∑ k ∈ Finset.range (j' + 1),
+                  Fintype.card F ^ (k + 1) :=
+              Nat.add_le_add hactive hrecursive
+          _ = t * (∑ k ∈ Finset.range (j' + 1),
+                Fintype.card F ^ (k + 1) +
+              Fintype.card F ^ (j' + 1 + 1)) := by
+                rw [Nat.mul_add]
+                ac_rfl
+          _ = t * ∑ k ∈ Finset.range (j' + 1 + 1),
+              Fintype.card F ^ (k + 1) := by
+              congr 1
+              symm
+              rw [Finset.sum_range_succ]
+
 end ActiveOrderFibreCount
 
 section RegularStratumCount
@@ -2531,6 +3046,72 @@ theorem kopparty_degree_lt_characteristic_cardinality
         Fintype.card E ^ (k + 1) := hext
     _ = t * rootCountGeometricFactor q e r := by
       simp only [hcard, rootCountGeometricFactor, pow_mul]
+
+/-- Expansion-point-amortized public root count.  If `Delta` bounds the
+weighted degree strictly below the extension-field cardinality, every
+solution is regular at at least `q^e-Delta` expansion points. -/
+theorem kopparty_degree_lt_characteristic_cardinality_amortized
+    {q r D t e Delta : ℕ}
+    (hq : Nat.Prime q) (hrD : r ≤ D) (hDq : D < q)
+    (ht : 0 < t) (he : 0 < e)
+    (Q : DifferentialPolynomial q r) (hQ : Q ≠ 0)
+    (hcoord : ∀ j : Fin (r + 1), Q.degreeOf (some j) ≤ t)
+    (htq : t < q)
+    (hweight : Q.weightedTotalDegree (jetWeight (r := r) D) ≤ Delta)
+    (hDelta : Delta < q ^ e) :
+    (q ^ e - Delta) * (differentialSolutions hq.ne_zero D Q).card ≤
+      t * rootCountGeometricFactor q e r := by
+  letI : NeZero q := ⟨hq.ne_zero⟩
+  letI : Fact q.Prime := ⟨hq⟩
+  let E := RootExtension q e
+  letI : Fintype E := Fintype.ofFinite E
+  letI : DecidableEq E := Classical.decEq E
+  let f : ZMod q →+* E := algebraMap (ZMod q) E
+  have hf : Function.Injective f := rootExtension_algebraMap_injective
+  let QE : DifferentialPolynomialOver E r := MvPolynomial.map f Q
+  have hQE : QE ≠ 0 := mvPolynomial_map_ne_zero f hf hQ
+  have hcard : Fintype.card E = q ^ e := rootExtension_fintypeCard he.ne'
+  have hcoordE : ∀ j : Fin (r + 1), QE.degreeOf (some j) ≤ t := by
+    intro j
+    rw [degreeOf_map_of_injective f hf]
+    exact hcoord j
+  have hweightE : QE.weightedTotalDegree (jetWeight (r := r) D) ≤ Delta := by
+    rw [weightedTotalDegree_map_of_injective f hf]
+    exact hweight
+  have hDeltaE : Delta < Fintype.card E := by simpa [hcard] using hDelta
+  have hext := card_sub_mul_differentialSolutionsOver_le_activeOrderSum
+    (F := E) hq (le_refl r) hrD hDq QE hQE
+      (hasJetOrderAtMost_ambient QE) hcoordE htq hweightE hDeltaE
+  calc
+    (q ^ e - Delta) * (differentialSolutions hq.ne_zero D Q).card =
+        (q ^ e - Delta) * (differentialSolutionsOver D Q).card := by
+      rw [differentialSolutions_card_eq_over Q]
+    _ ≤ (q ^ e - Delta) * (differentialSolutionsOver D QE).card :=
+      Nat.mul_le_mul_left _ (card_differentialSolutionsOver_le_map f hf Q)
+    _ = (Fintype.card E - Delta) *
+        (differentialSolutionsOver D QE).card := by rw [hcard]
+    _ ≤ t * ∑ k ∈ Finset.range (r + 1),
+        Fintype.card E ^ (k + 1) := hext
+    _ = t * rootCountGeometricFactor q e r := by
+      simp only [hcard, rootCountGeometricFactor, pow_mul]
+
+/-- Quotient form of the amortized bound, convenient for list-size
+consumers. -/
+theorem kopparty_degree_lt_characteristic_cardinality_div
+    {q r D t e Delta : ℕ}
+    (hq : Nat.Prime q) (hrD : r ≤ D) (hDq : D < q)
+    (ht : 0 < t) (he : 0 < e)
+    (Q : DifferentialPolynomial q r) (hQ : Q ≠ 0)
+    (hcoord : ∀ j : Fin (r + 1), Q.degreeOf (some j) ≤ t)
+    (htq : t < q)
+    (hweight : Q.weightedTotalDegree (jetWeight (r := r) D) ≤ Delta)
+    (hDelta : Delta < q ^ e) :
+    (differentialSolutions hq.ne_zero D Q).card ≤
+      (t * rootCountGeometricFactor q e r) / (q ^ e - Delta) := by
+  apply (Nat.le_div_iff_mul_le (Nat.sub_pos_of_lt hDelta)).2
+  rw [Nat.mul_comm]
+  exact kopparty_degree_lt_characteristic_cardinality_amortized
+    hq hrD hDq ht he Q hQ hcoord htq hweight hDelta
 
 end FinalCardinality
 
