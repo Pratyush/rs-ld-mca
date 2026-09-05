@@ -177,16 +177,18 @@ removes the active variable, and therefore lowers that invariant one order at
 a time.  Finally, the refinement-key space has the claimed geometric-sum
 cardinality.
 
-The remaining connection is the finite recursive partition: split solutions
-according to whether the current top stratum specializes to zero, send the
-zero branch to the next lower active order, and count the regular branch by
-its expansion point and lower Taylor jet.  Formalizing the associated choice
-function and proving its fibres have total size at most `t` will connect the
-compiled local lemmas into the global coverage/disjointness theorem.
-`Assumptions.lean` therefore still records the final cardinality statement as
-an external input.  That axiom must not be removed until this partition and
-the final scalar-extension count compile; merely renaming it would not reduce
-the trust boundary.
+The finite recursive partition is now formalized.  It chooses the least
+Hasse stratum whose specialization is nonzero, selects a deterministic
+nonvanishing expansion point, and keys a solution by that point and its lower
+Taylor jet.  Within a fixed key the active Taylor value is injective, even
+across multiplicity strata, and lies among the roots of one nonzero fibre of
+degree at most `t`.  The complementary top-stratum branch lowers the active
+order; after order zero, re-embedding the independent variable proves that a
+nonzero jet-free equation has no solutions.  Induction gives the geometric
+sum over an arbitrary finite field.  Finally, scalar extension to Mathlib's
+`GaloisField q e` and injectivity of the prime-field embedding give the public
+cardinality theorem.  Consequently the cardinality axiom has been removed;
+only Kopparty's algorithmic clause remains external.
 
 ## Reference
 

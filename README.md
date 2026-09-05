@@ -91,10 +91,17 @@ practical condition `m*A ≤ q`, the recursion runs over the base field and the
 bound becomes `B*sum_{j=0}^d q^(j+1)`.  The latter conclusion is exported by
 `quadratic_adaptive_base_field_combinatorial_main`.
 
-The only project-specific assumptions are the refined cardinality analysis
-and algorithmic clause of Kopparty's Theorem 4.3, both declared and documented in
-`RSListDecoding/Assumptions.lean`. The kernel dependency checks are in
-`RSListDecoding/Audit/AxiomAudit.lean`.
+The refined cardinality analysis is proved internally in
+`RSListDecoding/Lemmas/RootRefinement.lean`.  The only remaining
+project-specific assumption is the algorithmic clause of Kopparty's
+Theorem 4.3, declared in `RSListDecoding/Assumptions.lean`.  The kernel
+dependency checks are in `RSListDecoding/Audit/AxiomAudit.lean`.
+
+`ROOT_REFINEMENT.md` gives the mathematical proof mirrored by the Lean
+cardinality development.
+`scripts/exact_quadratic_evaluator.py` evaluates the finite quadratic
+certificate using exact integers; see `scripts/README.md` for the generating
+function identity, resource guard, and brute-force cross-checks.
 
 ## Verification
 

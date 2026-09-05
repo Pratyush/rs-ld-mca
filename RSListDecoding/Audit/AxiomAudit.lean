@@ -8,9 +8,9 @@ import RSListDecoding.Lemmas.QuadraticMultiplicity
 
 This module is imported by the library root, so its checks run in every full
 build.  The proposition definitions and the paper-owned interpolation solver
-have no project-specific assumptions.  The combinatorial capstone uses only
-Kopparty's cardinality clause.  Decoder correctness uses only Kopparty's
-algorithmic clause, while the final algorithmic capstone uses both clauses.
+have no project-specific assumptions.  Kopparty's cardinality clause is now
+proved internally.  Decoder correctness and the algorithmic capstones use
+only the remaining external algorithmic clause.
 -/
 
 /--
@@ -66,16 +66,21 @@ info: 'RSListDecoding.card_le_rootCountGeometricFactor' depends on axioms: [prop
 #print axioms RSListDecoding.card_le_rootCountGeometricFactor
 
 /--
-info: 'RSListDecoding.combinatorial_main' depends on axioms: [propext,
+info: 'RSListDecoding.kopparty_degree_lt_characteristic_cardinality' depends on axioms: [propext,
  Classical.choice,
- Quot.sound,
- RSListDecoding.kopparty_degree_lt_characteristic_cardinality]
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms RSListDecoding.kopparty_degree_lt_characteristic_cardinality
+
+/--
+info: 'RSListDecoding.combinatorial_main' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms RSListDecoding.combinatorial_main
 
 /- The interpolation construction is paper-owned and must remain independent
-of the external root-counting input. -/
+of the root-counting proof. -/
 /--
 info: 'RSListDecoding.exists_scoped_ambient_explainer' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
@@ -83,10 +88,7 @@ info: 'RSListDecoding.exists_scoped_ambient_explainer' depends on axioms: [prope
 #print axioms RSListDecoding.exists_scoped_ambient_explainer
 
 /--
-info: 'RSListDecoding.differentialSolutions_card_le_public' depends on axioms: [propext,
- Classical.choice,
- Quot.sound,
- RSListDecoding.kopparty_degree_lt_characteristic_cardinality]
+info: 'RSListDecoding.differentialSolutions_card_le_public' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms RSListDecoding.differentialSolutions_card_le_public
@@ -124,7 +126,6 @@ info: 'RSListDecoding.decoderProgram_result_eq_decodingList' depends on axioms: 
 info: 'RSListDecoding.algorithmic_main' depends on axioms: [propext,
  Classical.choice,
  Quot.sound,
- RSListDecoding.kopparty_degree_lt_characteristic_cardinality,
  RSListDecoding.kopparty_theorem_4_3_algorithm]
 -/
 #guard_msgs in
@@ -153,10 +154,7 @@ info: 'RSListDecoding.AllRateCombinatorialMainStatement' depends on axioms: [pro
 #print axioms RSListDecoding.AllRateCombinatorialMainStatement
 
 /--
-info: 'RSListDecoding.all_rate_combinatorial_main' depends on axioms: [propext,
- Classical.choice,
- Quot.sound,
- RSListDecoding.kopparty_degree_lt_characteristic_cardinality]
+info: 'RSListDecoding.all_rate_combinatorial_main' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms RSListDecoding.all_rate_combinatorial_main
@@ -171,7 +169,6 @@ info: 'RSListDecoding.AllRateAlgorithmicMainStatement' depends on axioms: [prope
 info: 'RSListDecoding.all_rate_algorithmic_main' depends on axioms: [propext,
  Classical.choice,
  Quot.sound,
- RSListDecoding.kopparty_degree_lt_characteristic_cardinality,
  RSListDecoding.kopparty_theorem_4_3_algorithm]
 -/
 #guard_msgs in
@@ -225,8 +222,8 @@ info: 'RSListDecoding.total_contactEnvelope_finrank_lt_interpolationSpace_quadra
 #guard_msgs in
 #print axioms RSListDecoding.total_contactEnvelope_finrank_lt_interpolationSpace_quadraticScalar
 
-/- The adaptive count and interpolation layers are assumption-free; the
-public list-size conclusion uses only Kopparty's cardinality clause. -/
+/- The adaptive count, interpolation, and public list-size layers are
+assumption-free. -/
 /--
 info: 'RSListDecoding.total_coupledContactEnvelope_finrank_lt_interpolationSpace_adaptive' depends on axioms: [propext,
  Classical.choice,
@@ -236,10 +233,7 @@ info: 'RSListDecoding.total_coupledContactEnvelope_finrank_lt_interpolationSpace
 #print axioms RSListDecoding.total_coupledContactEnvelope_finrank_lt_interpolationSpace_adaptive
 
 /--
-info: 'RSListDecoding.quadratic_adaptive_combinatorial_main' depends on axioms: [propext,
- Classical.choice,
- Quot.sound,
- RSListDecoding.kopparty_degree_lt_characteristic_cardinality]
+info: 'RSListDecoding.quadratic_adaptive_combinatorial_main' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms RSListDecoding.quadratic_adaptive_combinatorial_main
@@ -247,8 +241,7 @@ info: 'RSListDecoding.quadratic_adaptive_combinatorial_main' depends on axioms: 
 /--
 info: 'RSListDecoding.quadratic_adaptive_base_field_combinatorial_main' depends on axioms: [propext,
  Classical.choice,
- Quot.sound,
- RSListDecoding.kopparty_degree_lt_characteristic_cardinality]
+ Quot.sound]
 -/
 #guard_msgs in
 #print axioms RSListDecoding.quadratic_adaptive_base_field_combinatorial_main

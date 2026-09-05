@@ -1,3 +1,4 @@
+import RSListDecoding.Lemmas.RootRefinement
 import RSListDecoding.Lemmas.MainAllRate
 import RSListDecoding.Lemmas.QuadraticMultiplicity
 

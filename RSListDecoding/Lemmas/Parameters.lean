@@ -74,7 +74,7 @@ theorem interpolationDenominator_pos {ε θ : ℝ} {n : ℕ}
   omega
 
 /-- The interpolation degree budget is positive in the scoped parameter
-regime.  This supplies the positivity hypothesis in the external root-count
+regime.  This supplies the positivity hypothesis in the internal root-count
 theorem rather than adding it to the public statement. -/
 theorem interpolationDegreeBudget_pos {ε θ : ℝ} {n : ℕ}
     (hε : 0 < ε) (hn : 0 < n)

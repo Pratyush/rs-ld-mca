@@ -1,11 +1,11 @@
-import RSListDecoding.Assumptions
+import RSListDecoding.Lemmas.RootRefinement
 import RSListDecoding.Lemmas.Parameters
 
 /-!
 # Cardinality bounds for polynomial differential equations
 
-This module contains checked arithmetic specializations of the sole external
-root-counting input.  In the application the solution degree is `K-1 < q`.
+This module contains checked arithmetic specializations of the internally
+proved root-counting theorem.  In the application the solution degree is `K-1 < q`.
 The refined count therefore has exponent `2d+2` with the quadratic extension,
 and exponent `d+1` whenever the weighted degree is already below `q`.
 -/
