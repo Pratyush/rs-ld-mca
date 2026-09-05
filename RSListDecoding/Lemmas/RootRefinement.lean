@@ -1916,14 +1916,14 @@ noncomputable def activeExpansionPoint {r : ℕ} (x : JetVariable r)
 
 /-- Counting key at active order `j`: the expansion point followed by the
 Taylor data below order `j`. -/
-noncomputable def activeOrderKey {r j : ℕ} (hjr : j ≤ r)
+noncomputable def activeOrderKey {r j D : ℕ} (hjr : j ≤ r)
     (Q : DifferentialPolynomialOver F r)
     (P : Polynomial.degreeLT F (D + 1)) : F × (Fin j → F) :=
   let a := activeExpansionPoint (jetAtOrder r j hjr) Q P
   (a, lowerJetAt a P)
 
 /-- The active Taylor coefficient attached to a solution. -/
-noncomputable def activeOrderValue {r j : ℕ} (hjr : j ≤ r)
+noncomputable def activeOrderValue {r j D : ℕ} (hjr : j ≤ r)
     (Q : DifferentialPolynomialOver F r)
     (P : Polynomial.degreeLT F (D + 1)) : F :=
   let a := activeExpansionPoint (jetAtOrder r j hjr) Q P
@@ -2321,7 +2321,9 @@ theorem firstNonzeroIndex_eq_of_key_value
     simpa [activeOrderKey, a, x] using hkey_fst.symm
   have hkey_snd := congrArg Prod.snd hkey
   have hlower : lowerJetAt (j := j) a P = lowerJetAt (j := j) a P' := by
-    simpa [activeOrderKey, a, x, ha] using hkey_snd
+    dsimp [activeOrderKey] at hkey_snd
+    rw [ha] at hkey_snd
+    exact hkey_snd
   have hinit : ∀ k, k ≤ j →
       (hasseDerivative k P.1).eval a =
         (hasseDerivative k P'.1).eval a := by
@@ -2330,7 +2332,9 @@ theorem firstNonzeroIndex_eq_of_key_value
     · exact congrFun hlower ⟨k, hk⟩
     · have hkeq : k = j := by omega
       subst k
-      simpa [activeOrderValue, a, x, ha] using hvalue
+      dsimp [activeOrderValue] at hvalue
+      rw [ha] at hvalue
+      exact hvalue
   have hspec := activeOrderChoice_spec hjr Q hweight P hP
   have hspec' := activeOrderChoice_spec hjr Q hweight P' hP'
   dsimp only [x, n, a] at hspec
@@ -2386,7 +2390,9 @@ theorem activeOrderValue_injOn
     simpa [activeOrderKey, a, x] using hkey_fst.symm
   have hkey_snd := congrArg Prod.snd hkey
   have hlower : lowerJetAt (j := j) a P = lowerJetAt (j := j) a P' := by
-    simpa [activeOrderKey, a, x, ha] using hkey_snd
+    dsimp [activeOrderKey] at hkey_snd
+    rw [ha] at hkey_snd
+    exact hkey_snd
   have hinit : ∀ k, k ≤ j →
       (hasseDerivative k P.1).eval a =
         (hasseDerivative k P'.1).eval a := by
@@ -2395,7 +2401,9 @@ theorem activeOrderValue_injOn
     · exact congrFun hlower ⟨k, hk⟩
     · have hkeq : k = j := by omega
       subst k
-      simpa [activeOrderValue, a, x, ha] using hvalue
+      dsimp [activeOrderValue] at hvalue
+      rw [ha] at hvalue
+      exact hvalue
   have hspec := activeOrderChoice_spec hjr Q hweight P hP_parts.1
   have hspec' := activeOrderChoice_spec hjr Q hweight P' hP'_parts.1
   dsimp only [x, n, a] at hspec
@@ -2421,8 +2429,9 @@ theorem activeOrderValue_injOn
       exact hspec'.2.2.2
   · exact hinit
 
-/-- Evaluating a Hasse stratum in the fibre determined by an active-order
+/- Evaluating a Hasse stratum in the fibre determined by an active-order
 key agrees with differential specialization at the chosen expansion point. -/
+set_option maxHeartbeats 800000 in
 theorem fibrePolynomial_activeOrderKey_eval
     {r D j : ℕ} (hjr : j ≤ r)
     (Q : DifferentialPolynomialOver F r) (horder : HasJetOrderAtMost j Q)
