@@ -187,8 +187,10 @@ order; after order zero, re-embedding the independent variable proves that a
 nonzero jet-free equation has no solutions.  Induction gives the geometric
 sum over an arbitrary finite field.  Finally, scalar extension to Mathlib's
 `GaloisField q e` and injectivity of the prime-field embedding give the public
-cardinality theorem.  Consequently the cardinality axiom has been removed;
-only Kopparty's algorithmic clause remains external.
+cardinality theorem.  Consequently the cardinality axiom has been removed.
+The extensional `FieldCost` interface is also internally inhabited, leaving
+no project-specific Lean axioms; that cost interface is not an extracted
+low-level execution trace.
 
 ## Reference
 

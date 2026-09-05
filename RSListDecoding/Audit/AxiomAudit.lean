@@ -8,9 +8,8 @@ import RSListDecoding.Lemmas.QuadraticMultiplicity
 
 This module is imported by the library root, so its checks run in every full
 build.  The proposition definitions and the paper-owned interpolation solver
-have no project-specific assumptions.  Kopparty's cardinality clause is now
-proved internally.  Decoder correctness and the algorithmic capstones use
-only the remaining external algorithmic clause.
+have no project-specific assumptions.  Kopparty's cardinality clause and the
+extensional algebraic-cost certificate are now internally inhabited.
 -/
 
 /--
@@ -74,6 +73,14 @@ info: 'RSListDecoding.kopparty_degree_lt_characteristic_cardinality' depends on 
 #print axioms RSListDecoding.kopparty_degree_lt_characteristic_cardinality
 
 /--
+info: 'RSListDecoding.kopparty_degree_lt_characteristic_cardinality_amortized' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms RSListDecoding.kopparty_degree_lt_characteristic_cardinality_amortized
+
+/--
 info: 'RSListDecoding.combinatorial_main' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
@@ -94,13 +101,21 @@ info: 'RSListDecoding.differentialSolutions_card_le_public' depends on axioms: [
 #print axioms RSListDecoding.differentialSolutions_card_le_public
 
 /--
+info: 'RSListDecoding.decodingList_card_le_amortized_of_differentialEquation' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms RSListDecoding.decodingList_card_le_amortized_of_differentialEquation
+
+/--
 info: 'RSListDecoding.AlgorithmicMainStatement' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms RSListDecoding.AlgorithmicMainStatement
 
-/- The checked Gaussian solver and interpolation phase must not acquire an
-external algorithmic assumption. -/
+/- The checked Gaussian solver, interpolation phase, and root cost
+certificate must not acquire a project-specific assumption. -/
 /--
 info: 'RSListDecoding.GaussianKernel.solve_result_mem_kernel' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
@@ -114,19 +129,13 @@ info: 'RSListDecoding.solveInterpolationConstraints_satisfies' depends on axioms
 #print axioms RSListDecoding.solveInterpolationConstraints_satisfies
 
 /--
-info: 'RSListDecoding.decoderProgram_result_eq_decodingList' depends on axioms: [propext,
- Classical.choice,
- Quot.sound,
- RSListDecoding.kopparty_theorem_4_3_algorithm]
+info: 'RSListDecoding.decoderProgram_result_eq_decodingList' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms RSListDecoding.decoderProgram_result_eq_decodingList
 
 /--
-info: 'RSListDecoding.algorithmic_main' depends on axioms: [propext,
- Classical.choice,
- Quot.sound,
- RSListDecoding.kopparty_theorem_4_3_algorithm]
+info: 'RSListDecoding.algorithmic_main' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms RSListDecoding.algorithmic_main
@@ -166,10 +175,7 @@ info: 'RSListDecoding.AllRateAlgorithmicMainStatement' depends on axioms: [prope
 #print axioms RSListDecoding.AllRateAlgorithmicMainStatement
 
 /--
-info: 'RSListDecoding.all_rate_algorithmic_main' depends on axioms: [propext,
- Classical.choice,
- Quot.sound,
- RSListDecoding.kopparty_theorem_4_3_algorithm]
+info: 'RSListDecoding.all_rate_algorithmic_main' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
 #print axioms RSListDecoding.all_rate_algorithmic_main
@@ -245,3 +251,19 @@ info: 'RSListDecoding.quadratic_adaptive_base_field_combinatorial_main' depends 
 -/
 #guard_msgs in
 #print axioms RSListDecoding.quadratic_adaptive_base_field_combinatorial_main
+
+/- The explicit-integer certificate interface and its expansion-point
+amortized specialization likewise introduce no project assumptions. -/
+/--
+info: 'RSListDecoding.explicit_adaptive_listDecodable_of_exact_sum' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms RSListDecoding.explicit_adaptive_listDecodable_of_exact_sum
+
+/--
+info: 'RSListDecoding.explicit_adaptive_listDecodable_amortized_of_exact_sum' depends on axioms: [propext,
+ Classical.choice,
+ Quot.sound]
+-/
+#guard_msgs in
+#print axioms RSListDecoding.explicit_adaptive_listDecodable_amortized_of_exact_sum

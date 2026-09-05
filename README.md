@@ -92,16 +92,26 @@ bound becomes `B*sum_{j=0}^d q^(j+1)`.  The latter conclusion is exported by
 `quadratic_adaptive_base_field_combinatorial_main`.
 
 The refined cardinality analysis is proved internally in
-`RSListDecoding/Lemmas/RootRefinement.lean`.  The only remaining
-project-specific assumption is the algorithmic clause of Kopparty's
-Theorem 4.3, declared in `RSListDecoding/Assumptions.lean`.  The kernel
-dependency checks are in `RSListDecoding/Audit/AxiomAudit.lean`.
+`RSListDecoding/Lemmas/RootRefinement.lean`, and the extensional
+algebraic-cost interface is internally inhabited in
+`RSListDecoding/Defs/RootAlgorithm.lean`.  There are no project-specific Lean
+axioms.  The kernel dependency checks are in
+`RSListDecoding/Audit/AxiomAudit.lean`.
+
+The `FieldCost` layer certifies mathematical outputs together with charged
+algebraic-operation allowances.  It is not a low-level execution trace, so
+the absence of an algorithmic axiom should not be read as an extraction claim
+for Kopparty's `SOLVE` implementation.
 
 `ROOT_REFINEMENT.md` gives the mathematical proof mirrored by the Lean
 cardinality development.
 `scripts/exact_quadratic_evaluator.py` evaluates the finite quadratic
 certificate using exact integers; see `scripts/README.md` for the generating
 function identity, resource guard, and brute-force cross-checks.
+`scripts/scan_quadratic_parameters.py` turns parameter grids into exact
+integer hypotheses for the explicit certificate theorems.  A successful
+scanner row is a reproducible candidate witness, not by itself a kernel proof
+of the displayed large-integer equality.
 
 ## Verification
 
