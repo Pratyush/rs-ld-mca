@@ -20,6 +20,8 @@ trusted surface is `RSListDecoding/Main.lean`:
   finite quadratic-multiplicity certificate.
 - `RSListDecoding.quadratic_adaptive_base_field_combinatorial_main` gives its
   smaller-list specialization when the weighted degree is below `q`.
+- `RSListDecoding.isListDecodableAtAgreement_of_extension` formalizes the
+  coordinate-padding reduction used by the revised all-rate paper.
 
 For every fixed `0 < ε < 1` and `0 < θ < 1`, the strengthened statements
 provide a threshold `d₀(ε, θ)` such that every `d ≥ d₀` works for all
@@ -112,6 +114,11 @@ function identity, resource guard, and brute-force cross-checks.
 integer hypotheses for the explicit certificate theorems.  A successful
 scanner row is a reproducible candidate witness, not by itself a kernel proof
 of the displayed large-integer equality.
+
+`OPTIMIZATION_AUDIT_2026-09-05.md` records the exact paper-rank experiment,
+the new `d=49` support-only witness, full-kernel common-root sweeps, the
+Gaussian-rectangle saddle-point diagnostics, and a concrete comparison with
+the revised paper's padding reduction.
 
 ## Verification
 

@@ -38,6 +38,7 @@ import RSListDecoding.Lemmas.RootRefinement
 import RSListDecoding.Lemmas.RootCount
 import RSListDecoding.Lemmas.SolutionListBridge
 import RSListDecoding.Lemmas.Subcode
+import RSListDecoding.Lemmas.Padding
 import RSListDecoding.Lemmas.Explainer
 import RSListDecoding.Lemmas.MainCombinatorial
 import RSListDecoding.Lemmas.AlgorithmicInterpolation

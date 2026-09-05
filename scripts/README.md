@@ -14,9 +14,12 @@ python3 scripts/exact_quadratic_evaluator.py \
   --n 1000 --A 300 --K 100 --B 9697
 ```
 
-Exit status is zero exactly when the strict certificate holds, one when it
-does not hold, and two for an invalid or infeasible request.  The JSON output
-contains the two exact counts, their signed gap, and the computation method.
+Exit status is zero exactly when the certificate selected by `--criterion`
+holds, one when it does not hold, and two for an invalid or infeasible
+request.  `coupled` is the former bound, `sharpened` is the strongest
+support-only bound proved in Lean, and `paper` is the manuscript's exact
+kernel-subtracted expression.  The last is currently evaluator-only: its
+`K_r` direct-sum rank proof has not yet been ported to Lean.
 
 The fast `gaussian-constant-slack` method applies when
 
@@ -74,3 +77,31 @@ python3 scripts/scan_quadratic_parameters.py \
 
 Each JSON record includes every arithmetic theorem hypothesis, a prime field
 size, both exact dimension counts, and the signed strict-inequality gap.
+The scanner accepts the same `--criterion` choices as the evaluator.
+
+## Local rank experiment
+
+`local_rank_experiment.py` constructs the manuscript's universal local map
+over a small prime field and computes its exact matrix rank.  For example:
+
+```bash
+python3 scripts/local_rank_experiment.py --q 7 --d 3 --m 4 --W 2
+```
+
+The test suite checks 72 small parameter tuples; the measured rank equals the
+paper's kernel-subtracted formula in every case.  This is regression evidence,
+not a substitute for the remaining `K_r` proof.
+
+## Full-kernel experiment
+
+`full_kernel_experiment.py` compares the message roots of one interpolation
+kernel element with the common roots of a complete nullspace basis.  The
+companion `full_kernel_sweep.py` exhausts every received word for one tiny
+configuration.  Both use exact arithmetic over a prime field.
+
+## Saddle-point diagnostics
+
+`saddle_point_experiment.py` evaluates the exact Gaussian-rectangle cap and
+the corresponding independent-geometric normal approximation.  Its intended
+use is to test constants and convergence before attempting the remaining
+uniform bivariate local-CLT proof.

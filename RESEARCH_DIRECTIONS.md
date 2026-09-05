@@ -96,7 +96,7 @@ Exhaustive small-instance tests compare it against the independent bivariate
 dynamic program.  A quasi-linear truncated-product implementation remains a
 performance direction, not a correctness obligation for this evaluator.
 
-## P0.3: certified finite threshold search -- no witness yet
+## P0.3: certified finite threshold search -- sharpened witness found
 
 `scripts/scan_quadratic_parameters.py` emits complete explicit-integer tuples
 for the Lean theorem, exact local and global sums, every side-condition, and
@@ -104,14 +104,15 @@ the strict certificate comparison.  Decimal logarithms only propose an
 integer `W`, with a higher-precision stability check; the theorem input is the
 reported integer and contains no logarithm.
 
-No passing tuple has yet appeared.  In the most favorable tested
-constant-slack regime `(R,epsilon,c,a)=(.33,.999,32,2)`, exact ratios `G/(nL)`
-are `0.4061`, `0.5026`, `0.5866`, `0.6623`, and `0.7361` at
-`d=32,48,64,80,97`.  Thus the scanner is certified machinery, but it has not
-supplied a finite witness for an unconditional numerical Reed--Solomon
-theorem through the tested range.
+The stronger signed-invariant support envelope now gives a passing tuple at
+`(R,epsilon,c,a,d)=(.33,.999,32,2,49)`, with `n=100000`, `q=232607`, and
+exact ratio `G/(nL)=1.0112755`.  The paper's kernel-subtracted expression
+passes already at `d=48`, with ratio `1.0044872`, but its `K_r` direct-sum
+rank proof has not yet been ported to Lean.  See
+`OPTIMIZATION_AUDIT_2026-09-05.md` for the full integers and reproduction
+commands.
 
-## P0.4: unconditional quadratic family -- remaining mathematical gap
+## P0.4: unconditional quadratic family -- finite witness, uniform gap remains
 
 Lean now exports `explicit_adaptive_listDecodable_of_exact_sum`, its
 base-field variant, and an expansion-point-amortized variant.  Their inputs
@@ -119,11 +120,12 @@ are explicit natural numbers, exact finite sums, and decidable arithmetic
 hypotheses.  This closes the theorem-interface work but remains conditional
 on the strict exact-sum comparison.
 
-An unconditional family theorem needs either a passing finite tuple plus a
-kernel-checked evaluation of its large integers, or a uniform lower bound for
-the Gaussian rectangle shell strong enough to prove the comparison.  The
-existing simplex/residue estimate loses `d(d-1)/2`; at quadratic
-multiplicity that is precisely the obstruction described in P1 below.
+A finite tuple now passes the sharpened Lean theorem's arithmetic hypothesis.
+Turning the external big-integer calculation into a closed Lean theorem still
+requires checking that one displayed inequality inside the kernel, for
+example by a verified evaluator or a generated proof certificate.  A uniform
+family theorem still needs a lower bound for the Gaussian rectangle shell
+strong enough to prove the comparison for all large `d`.
 
 ## P0.5: algorithmic theorem -- axiom-free interface, extraction open
 
@@ -184,7 +186,7 @@ initial module, instead of bounding it by the support envelope.  The target
 should be stated before doing the algebra: an additional factor `d^eta` in
 local rank changes the threshold exponent; a fixed factor does not.
 
-## P2: several interpolation equations
+## P2: several interpolation equations -- negative finite evidence
 
 The interpolation kernel generally contains many independent polynomials,
 so producing `Q_1,...,Q_s` is cheap.  It does not follow that their common
@@ -199,6 +201,13 @@ all have the same `q^r` degree-`<q` solutions `P` with `P^(r)=0`.  More
 generally, a large interpolation kernel can lie inside a principal ideal.
 Thus “use more equations” has no worst-case gain without a transversality or
 gcd statement.
+
+The new exact small-field harness exhaustively checked 1,250 received words
+across two `q=5,n=4` configurations.  In every nonempty-kernel case, some
+basis interpolant already had exactly the common zero set; multiple equations
+never improved on that best basis element.  Some worse basis elements did
+have extra roots.  This is evidence, not a theorem, but it reinforces the
+principal-ideal obstruction.
 
 The viable version is quotient-rank: prove that the interpolation kernel has
 large image modulo every low-weight principal differential ideal.  If that
@@ -249,11 +258,11 @@ many orders of magnitude.
 |---|---|---|
 | Done | P0.1 Lean root refinement | proved, including expansion-point amortization; green trust audit |
 | Done | P0.2 one-variable adaptive evaluator | exact counts with independent exhaustive cross-checks |
-| Active | P0.3 certified finite search | machinery complete; find a passing tuple or certify a search boundary |
-| Active | P0.4 unconditional quadratic family | prove the exact-sum comparison uniformly |
+| Done | P0.3 certified finite search | sharpened support witness at `d=49`; paper expression at `d=48` |
+| Active | P0.4 unconditional quadratic family | kernel-check the finite integer inequality and prove the comparison uniformly |
 | Highest | P0.5 executable `SOLVE` | replace extensional charging by checked execution semantics |
-| P1.1 | Rectangle saddle-point theorem | removes or sharply reduces the `d^2/2` residue loss |
-| P1.2 | Cross-layer local-rank theorem | polynomial-in-`d` saving, not a constant |
+| P1.1 | Paper `K_r` direct-sum proof | closes the exact local rank and recovers `d=48` |
+| P1.2 | Rectangle saddle-point theorem | removes or sharply reduces the `d^2/2` residue loss |
 | P2.1 | Quotient-rank/multiple-`Q` lemma | excludes common-principal-ideal degeneracy |
 | P2.2 | Linear-factor extraction | enables the fast affine-space solvers |
 | P3 | Floor and constant tuning | only after a P1/P2 structural gain |
