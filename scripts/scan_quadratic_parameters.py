@@ -123,12 +123,18 @@ class SearchRecord:
     q: int
     k: int
     c: int
+    criterion: str
     result: dict[str, object]
     hypotheses: dict[str, bool]
 
     @property
     def passes(self) -> bool:
-        return bool(self.result["strict_certificate"]) and all(
+        certificate_key = {
+            "coupled": "strict_certificate",
+            "sharpened": "sharpened_support_strict_certificate",
+            "paper": "paper_rank_strict_certificate",
+        }[self.criterion]
+        return bool(self.result[certificate_key]) and all(
             self.hypotheses.values()
         )
 
@@ -143,6 +149,7 @@ def make_record(
     n: int,
     extension_degree: int,
     max_updates: int | None,
+    criterion: str = "coupled",
 ) -> SearchRecord:
     A = ceil_fraction(agreement * n)
     K = floor_fraction(rate * n)
@@ -183,6 +190,7 @@ def make_record(
         q=q,
         k=K,
         c=c,
+        criterion=criterion,
         result=result,
         hypotheses=hypotheses,
     )
@@ -205,6 +213,11 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--top", type=int, default=10)
     parser.add_argument("--passing-only", action="store_true")
     parser.add_argument("--compact", action="store_true")
+    parser.add_argument(
+        "--criterion",
+        choices=("coupled", "sharpened", "paper"),
+        default="coupled",
+    )
     return parser
 
 
@@ -227,6 +240,7 @@ def main(argv: Iterable[str] | None = None) -> int:
                         n=args.n,
                         extension_degree=args.extension_degree,
                         max_updates=args.max_updates,
+                        criterion=args.criterion,
                     )
                 except (ArithmeticError, MemoryError, ValueError) as error:
                     skipped.append({"d": d, "c": c, "a": str(a), "error": str(error)})
@@ -236,7 +250,12 @@ def main(argv: Iterable[str] | None = None) -> int:
 
     def score(record: SearchRecord) -> tuple[int, Fraction]:
         result = record.result
-        local = int(result["n_times_local_count"])
+        local_key = {
+            "coupled": "n_times_local_count",
+            "sharpened": "n_times_sharpened_support_local_count",
+            "paper": "n_times_paper_local_rank_count",
+        }[record.criterion]
+        local = int(result[local_key])
         global_value = int(result["global_count"])
         return (1 if record.passes else 0, Fraction(global_value, max(1, local)))
 

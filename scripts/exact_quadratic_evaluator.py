@@ -239,22 +239,78 @@ def local_count(parameters: Parameters) -> int:
     return total
 
 
+def paper_local_rank_count(parameters: Parameters) -> int:
+    """Evaluate the kernel-subtracted local-rank bound from Lemma 3.11.
+
+    For a fixed intermediate ``T`` degree ``r``, put
+
+        h_r = ceil((m-r)/d).
+
+    The intermediate space has ``(r+1)(m+1) N_d(W+r)`` monomials.  The
+    explicit kernel constructed in the paper removes
+
+        max(0, (r-h_r+1)(m-h_r+1)) N_d(W+r)
+
+    of them.  Unlike :func:`local_count`, this is a rank bound for the
+    local map rather than the cardinality of an output support envelope.
+    """
+    p = parameters
+    cumulative = partition_cumulative(p.d - 1, p.W + p.m - 1)
+    total = 0
+    for r in range(p.m):
+        h_r = (p.m - r + p.d - 1) // p.d
+        ambient = (r + 1) * (p.m + 1)
+        kernel = max(0, (r - h_r + 1) * (p.m - h_r + 1))
+        total += (ambient - kernel) * cumulative[p.W + r]
+    return total
+
+
+def sharpened_support_local_count(parameters: Parameters) -> int:
+    """Count the sharper output support before the paper's kernel quotient.
+
+    The rewrite invariants give ``E-degree <= T-degree`` and higher-jet
+    weight at most ``W + T-degree``.  This bound is slightly weaker than the
+    kernel-subtracted rank, but can be proved using support containment alone.
+    """
+    p = parameters
+    cumulative = partition_cumulative(p.d - 1, p.W + p.m - 1)
+    total = 0
+    for t in range(p.m):
+        max_e = min((p.m - 1 - t) // p.d, t)
+        total += (max_e + 1) * (p.m + t + 1) * cumulative[p.W + t]
+    return total
+
+
 def evaluate(
     parameters: Parameters, *, max_cells: int | None = 20_000_000
 ) -> dict[str, int | str | bool | dict[str, int]]:
     parameters.validate()
     started = time.perf_counter()
     local = local_count(parameters)
+    paper_local = paper_local_rank_count(parameters)
+    sharpened_support_local = sharpened_support_local_count(parameters)
     global_value, method, good = global_count(parameters, max_cells=max_cells)
     scaled_local = parameters.n * local
+    scaled_paper_local = parameters.n * paper_local
+    scaled_sharpened_support_local = parameters.n * sharpened_support_local
     elapsed_ms = round((time.perf_counter() - started) * 1000)
     return {
         "parameters": asdict(parameters),
         "local_count": local,
         "n_times_local_count": scaled_local,
+        "paper_local_rank_count": paper_local,
+        "n_times_paper_local_rank_count": scaled_paper_local,
+        "sharpened_support_local_count": sharpened_support_local,
+        "n_times_sharpened_support_local_count": scaled_sharpened_support_local,
         "global_count": global_value,
         "strict_certificate": scaled_local < global_value,
         "gap": global_value - scaled_local,
+        "paper_rank_strict_certificate": scaled_paper_local < global_value,
+        "paper_rank_gap": global_value - scaled_paper_local,
+        "sharpened_support_strict_certificate": (
+            scaled_sharpened_support_local < global_value
+        ),
+        "sharpened_support_gap": global_value - scaled_sharpened_support_local,
         "good_higher_exponent_count": good,
         "global_method": method,
         "elapsed_ms": elapsed_ms,
@@ -273,6 +329,15 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--compact", action="store_true", help="emit one-line JSON"
+    )
+    parser.add_argument(
+        "--criterion",
+        choices=("coupled", "sharpened", "paper"),
+        default="coupled",
+        help=(
+            "certificate controlling the exit status; 'sharpened' has a Lean "
+            "support proof, while 'paper' is currently evaluator-only"
+        ),
     )
     return parser
 
@@ -295,7 +360,12 @@ def main(argv: Iterable[str] | None = None) -> int:
         print(json.dumps({"error": str(error)}), file=sys.stderr)
         return 2
     print(json.dumps(result, indent=None if args.compact else 2, sort_keys=True))
-    return 0 if result["strict_certificate"] else 1
+    certificate_key = {
+        "coupled": "strict_certificate",
+        "sharpened": "sharpened_support_strict_certificate",
+        "paper": "paper_rank_strict_certificate",
+    }[args.criterion]
+    return 0 if result[certificate_key] else 1
 
 
 if __name__ == "__main__":

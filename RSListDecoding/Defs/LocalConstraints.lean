@@ -168,6 +168,18 @@ def CoupledContactEnvelopeExponent (m W : ℕ)
     localFirstJetExponent e ≤ m + e (localT d) ∧
     localAnisotropicWeight e ≤ W + contactOrder d e
 
+/-- Support envelope retaining the two signed invariants of the `U`-to-`E`
+rewrite.  An output monomial has `E` exponent at most its `T` exponent, and
+its higher-jet anisotropic weight is bounded by `W` plus that same `T`
+exponent.  These are stronger than the corresponding clauses of
+`CoupledContactEnvelopeExponent`. -/
+def SharpenedContactEnvelopeExponent (m W : ℕ)
+    (e : LocalVariable d →₀ ℕ) : Prop :=
+  contactOrder d e < m ∧
+    e (localE d) ≤ e (localT d) ∧
+    localFirstJetExponent e ≤ m + e (localT d) ∧
+    localAnisotropicWeight e ≤ W + e (localT d)
+
 /-- The canonical monomial submodule selected by an exponent predicate.
 Using `restrictSupport` exposes Mathlib's restricted monomial basis directly
 for the later rank computation. -/
@@ -190,5 +202,11 @@ def coupledContactEnvelopeSpace (m W : ℕ) :
     Submodule R (LocalPolynomial R d) :=
   localExponentSpan (R := R)
     (CoupledContactEnvelopeExponent (d := d) m W)
+
+/-- The sharpened support codomain for the universal local constraint map. -/
+def sharpenedContactEnvelopeSpace (m W : ℕ) :
+    Submodule R (LocalPolynomial R d) :=
+  localExponentSpan (R := R)
+    (SharpenedContactEnvelopeExponent (d := d) m W)
 
 end RSListDecoding

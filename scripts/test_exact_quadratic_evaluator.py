@@ -13,6 +13,8 @@ from exact_quadratic_evaluator import (
     gaussian_rectangle_coefficients,
     good_higher_exponent_count,
     local_count,
+    paper_local_rank_count,
+    sharpened_support_local_count,
     partition_cumulative,
 )
 
@@ -22,6 +24,34 @@ def tuples_with_entries(length: int, maximum: int):
 
 
 class ExactQuadraticEvaluatorTests(unittest.TestCase):
+    def test_paper_local_rank_small_hand_computation(self) -> None:
+        parameters = Parameters(d=2, m=4, W=2, C=4, n=1, A=1, K=3, B=4)
+        # N_2(z) = z+1.  The four layer coefficients B_r are 5, 10, 11, 12.
+        self.assertEqual(paper_local_rank_count(parameters), 138)
+
+    def test_paper_rank_never_exceeds_coupled_envelope_on_small_grid(self) -> None:
+        for d in range(1, 6):
+            for m in range(1, 9):
+                for W in range(5):
+                    parameters = Parameters(
+                        d=d, m=m, W=W, C=m, n=1, A=1, K=2, B=m
+                    )
+                    self.assertLessEqual(
+                        paper_local_rank_count(parameters), local_count(parameters)
+                    )
+
+    def test_paper_rank_never_exceeds_sharpened_support(self) -> None:
+        for d in range(1, 6):
+            for m in range(1, 9):
+                for W in range(5):
+                    parameters = Parameters(
+                        d=d, m=m, W=W, C=m, n=1, A=1, K=2, B=m
+                    )
+                    self.assertLessEqual(
+                        paper_local_rank_count(parameters),
+                        sharpened_support_local_count(parameters),
+                    )
+
     def test_partition_cumulative_against_enumeration(self):
         for d in range(1, 6):
             for W in range(9):

@@ -4,6 +4,7 @@ import Mathlib.Data.Finsupp.Order
 import Mathlib.Data.Finset.NatAntidiagonal
 import Mathlib.LinearAlgebra.Dimension.StrongRankCondition
 import Mathlib.LinearAlgebra.FreeModule.StrongRankCondition
+import Mathlib.Algebra.Order.Floor.Div
 
 /-!
 # Counting the low-contact envelope
@@ -174,11 +175,42 @@ abbrev CoupledContactEnvelopeCode (d m W : ℕ) :=
     Fin (m + p.1.1.val + 1) ×
       BoundedScaledExponent d (W + contactLayerOrder p)
 
+/-- Dependent finite code for the sharpened support envelope. -/
+abbrev SharpenedContactEnvelopeCode (d m W : ℕ) :=
+  Σ t : Fin m,
+    Fin (min ((m - 1 - t.val) / d) t.val + 1) ×
+      Fin (m + t.val + 1) × BoundedScaledExponent d (W + t.val)
+
 /-- The exact weighted local-envelope sum. -/
 def coupledContactEnvelopeCount (d m W : ℕ) : ℕ :=
   ∑ p : ContactLayer d m,
     (m + p.1.1.val + 1) *
       scaledExponentCount d (W + contactLayerOrder p)
+
+/-- Exact cardinality bound for the strongest support-only local envelope. -/
+def sharpenedContactEnvelopeCount (d m W : ℕ) : ℕ :=
+  ∑ t : Fin m,
+    (min ((m - 1 - t.val) / d) t.val + 1) * (m + t.val + 1) *
+      scaledExponentCount d (W + t.val)
+
+/-- The smallest `E` power used by the manuscript kernel in `T` layer
+`r`.  This is `ceil((m-r)/d)`; it is kept as data for the remaining exact
+quotient-rank formalization. -/
+def paperKernelHeight (d m r : ℕ) : ℕ :=
+  (m - r) ⌈/⌉ d
+
+/-- The manuscript's kernel-subtracted coefficient in `T` layer `r`. -/
+def paperLocalRankCoefficient (d m r : ℕ) : ℕ :=
+  let h := paperKernelHeight d m r
+  (r + 1) * (m + 1) - (r + 1 - h) * (m + 1 - h)
+
+/-- Exact finite form of the local-rank upper bound from Lemmas 3.11--3.12
+of the manuscript.  The definition is executable; proving that the
+universal local map has rank at most this value remains a separate theorem
+obligation. -/
+def paperLocalRankCount (d m W : ℕ) : ℕ :=
+  ∑ r : Fin m,
+    paperLocalRankCoefficient d m r * scaledExponentCount d (W + r.val)
 
 /-- Encode a contact-envelope monomial using the exact triangular
 `(T / d,E)` region and the residue `T % d`. -/
@@ -276,6 +308,30 @@ def encodeCoupledContactEnvelope {d m W : ℕ} (hd : 0 < d)
       simpa [p, contactLayerOrder, t, b,
         contactOrder_eq_t_add_d_mul_e] using hhigher⟩⟩
 
+/-- Encode a sharpened-envelope monomial without discarding either signed
+invariant of the contact rewrite. -/
+def encodeSharpenedContactEnvelope {d m W : ℕ} (hd : 0 < d)
+    (e : {e : LocalVariable d →₀ ℕ //
+      SharpenedContactEnvelopeExponent (d := d) m W e}) :
+    SharpenedContactEnvelopeCode d m W := by
+  let t := e.1 (localT d)
+  let b := e.1 (localE d)
+  have hcontact : t + d * b < m := by
+    simpa [t, b, contactOrder_eq_t_add_d_mul_e] using e.2.1
+  have ht : t < m := lt_of_le_of_lt (Nat.le_add_right t (d * b)) hcontact
+  have hbdiv : b ≤ (m - 1 - t) / d := by
+    rw [Nat.le_div_iff_mul_le hd]
+    have : t + d * b ≤ m - 1 := by omega
+    have hmul : b * d = d * b := Nat.mul_comm _ _
+    omega
+  exact
+    ⟨⟨t, ht⟩,
+     ⟨b, Nat.lt_succ_of_le (le_min hbdiv e.2.2.1)⟩,
+     ⟨localFirstJetExponent e.1, Nat.lt_succ_of_le e.2.2.2.1⟩,
+     ⟨localHigherExponent e.1, by
+       rw [mem_scaledExponentFinset, scaledWeight_localHigherExponent]
+       exact e.2.2.2.2⟩⟩
+
 theorem encodeContactEnvelope_injective {d m W : ℕ} (hd : 0 < d) :
     Function.Injective (encodeContactEnvelope (m := m) (W := W) hd) := by
   intro e f hef
@@ -318,12 +374,44 @@ theorem encodeCoupledContactEnvelope_injective
     · simpa [localFirstJetExponent_eq, localY] using hfirst
     · exact congrFun hhigher i
 
+theorem encodeSharpenedContactEnvelope_injective
+    {d m W : ℕ} (hd : 0 < d) :
+    Function.Injective
+      (encodeSharpenedContactEnvelope (m := m) (W := W) hd) := by
+  intro e f hef
+  have hT : e.1 (localT d) = f.1 (localT d) :=
+    congrArg (fun z : SharpenedContactEnvelopeCode d m W => z.1.val) hef
+  have hE : e.1 (localE d) = f.1 (localE d) :=
+    congrArg (fun z : SharpenedContactEnvelopeCode d m W => z.2.1.val) hef
+  have hfirst : localFirstJetExponent e.1 = localFirstJetExponent f.1 :=
+    congrArg (fun z : SharpenedContactEnvelopeCode d m W => z.2.2.1.val) hef
+  have hhigher : localHigherExponent e.1 = localHigherExponent f.1 :=
+    congrArg (fun z : SharpenedContactEnvelopeCode d m W => z.2.2.2.1) hef
+  apply Subtype.ext
+  apply Finsupp.ext
+  intro v
+  rcases v with (_ | (_ | j))
+  · exact hT
+  · exact hE
+  · obtain ⟨n, rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt hd)
+    refine Fin.cases ?_ (fun i => ?_) j
+    · simpa [localFirstJetExponent_eq, localY] using hfirst
+    · exact congrFun hhigher i
+
 theorem card_coupledContactEnvelopeCode (d m W : ℕ) :
     Fintype.card (CoupledContactEnvelopeCode d m W) =
       coupledContactEnvelopeCount d m W := by
   rw [Fintype.card_sigma]
   simp_rw [Fintype.card_prod, Fintype.card_fin, Fintype.card_coe]
   rfl
+
+theorem card_sharpenedContactEnvelopeCode (d m W : ℕ) :
+    Fintype.card (SharpenedContactEnvelopeCode d m W) =
+      sharpenedContactEnvelopeCount d m W := by
+  rw [Fintype.card_sigma]
+  simp_rw [Fintype.card_prod, Fintype.card_fin, Fintype.card_coe]
+  simp [sharpenedContactEnvelopeCount, scaledExponentCount,
+    mul_assoc]
 
 theorem encodeContactEnvelopeSharp_injective {d W : ℕ} (hd : 0 < d) :
     Function.Injective (encodeContactEnvelopeSharp (W := W) hd) := by
@@ -426,6 +514,27 @@ theorem natCard_coupledContactEnvelopeExponent_le
         (encodeCoupledContactEnvelope_injective hd)
     _ = coupledContactEnvelopeCount d m W := by
       rw [Nat.card_eq_fintype_card, card_coupledContactEnvelopeCode]
+
+theorem natCard_sharpenedContactEnvelopeExponent_le
+    {d m W : ℕ} (hd : 0 < d) :
+    Nat.card
+        {e : LocalVariable d →₀ ℕ //
+          SharpenedContactEnvelopeExponent (d := d) m W e} ≤
+      sharpenedContactEnvelopeCount d m W := by
+  let code :
+      {e : LocalVariable d →₀ ℕ //
+        SharpenedContactEnvelopeExponent (d := d) m W e} →
+        SharpenedContactEnvelopeCode d m W :=
+    encodeSharpenedContactEnvelope hd
+  calc
+    Nat.card
+        {e : LocalVariable d →₀ ℕ //
+          SharpenedContactEnvelopeExponent (d := d) m W e}
+        ≤ Nat.card (SharpenedContactEnvelopeCode d m W) :=
+      Nat.card_le_card_of_injective code
+        (encodeSharpenedContactEnvelope_injective hd)
+    _ = sharpenedContactEnvelopeCount d m W := by
+      rw [Nat.card_eq_fintype_card, card_sharpenedContactEnvelopeCode]
 
 /-- Exact triangular contact count for every multiplicity divisible by the
 derivative depth.  This removes the factor two in the generic rectangular
@@ -584,6 +693,34 @@ theorem finrank_coupledContactEnvelopeSpace_le
   rw [Module.finrank_eq_card_basis b]
   simpa [Nat.card_eq_fintype_card] using
     (natCard_coupledContactEnvelopeExponent_le
+      (d := d) (m := m) (W := W) hd)
+
+/-- Exact dimension bound for the strongest support-only local codomain. -/
+theorem finrank_sharpenedContactEnvelopeSpace_le
+    {R : Type*} [Field R] {d m W : ℕ} (hd : 0 < d) :
+    Module.finrank R
+        (sharpenedContactEnvelopeSpace (R := R) (d := d) m W) ≤
+      sharpenedContactEnvelopeCount d m W := by
+  let code :
+      {e : LocalVariable d →₀ ℕ //
+        SharpenedContactEnvelopeExponent (d := d) m W e} →
+        SharpenedContactEnvelopeCode d m W :=
+    encodeSharpenedContactEnvelope hd
+  letI : Fintype
+      {e : LocalVariable d →₀ ℕ //
+        SharpenedContactEnvelopeExponent (d := d) m W e} :=
+    Fintype.ofInjective code (by
+      simpa [code] using
+        encodeSharpenedContactEnvelope_injective (m := m) (W := W) hd)
+  let b : Module.Basis
+      {e : LocalVariable d →₀ ℕ //
+        SharpenedContactEnvelopeExponent (d := d) m W e}
+      R (sharpenedContactEnvelopeSpace (R := R) (d := d) m W) :=
+    MvPolynomial.basisRestrictSupport R
+      {e | SharpenedContactEnvelopeExponent (d := d) m W e}
+  rw [Module.finrank_eq_card_basis b]
+  simpa [Nat.card_eq_fintype_card] using
+    (natCard_sharpenedContactEnvelopeExponent_le
       (d := d) (m := m) (W := W) hd)
 
 /-- Exact generic local-rank bound when `d ∣ m`.  It is pointwise half the
