@@ -168,12 +168,25 @@ Lean patch now uses Mathlib's `GaloisField q e` and proves scalar-extension
 compatibility, preservation of nonzeroness and degree bounds, the
 finite-field nonvanishing-point lemma, the degree-below-characteristic
 regular-lift uniqueness theorem, and the exact `t`-sized regular fibre count.
-It also proves that the refinement-key space has the claimed geometric-sum
-cardinality.  The deterministic partial-derivative recursion and its global
-coverage/disjointness theorem are not yet formalized, so `Assumptions.lean`
-still records the final cardinality statement as an external input.  That
-axiom must not be removed until Sections 3--4 are connected to the compiled
-lemmas; merely renaming it would not reduce the trust boundary.
+It also proves characteristic-safe Hasse partial strata, the existence of a
+regular stratum and expansion point whenever the top stratum specializes
+nontrivially, and regular-lift uniqueness at an arbitrary expansion point.
+The latter now works in the original ambient jet-variable type under a
+checked active-order invariant.  Top Hasse extraction preserves support,
+removes the active variable, and therefore lowers that invariant one order at
+a time.  Finally, the refinement-key space has the claimed geometric-sum
+cardinality.
+
+The remaining connection is the finite recursive partition: split solutions
+according to whether the current top stratum specializes to zero, send the
+zero branch to the next lower active order, and count the regular branch by
+its expansion point and lower Taylor jet.  Formalizing the associated choice
+function and proving its fibres have total size at most `t` will connect the
+compiled local lemmas into the global coverage/disjointness theorem.
+`Assumptions.lean` therefore still records the final cardinality statement as
+an external input.  That axiom must not be removed until this partition and
+the final scalar-extension count compile; merely renaming it would not reduce
+the trust boundary.
 
 ## Reference
 

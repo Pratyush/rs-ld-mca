@@ -181,6 +181,391 @@ theorem natCast_choose_ne_zero_of_lt_char
 
 end Binomial
 
+section PartialHasse
+
+variable {R σ : Type*} [CommSemiring R] [DecidableEq σ]
+
+/-- Regard a multivariate polynomial as a univariate polynomial in `x`, with
+coefficients in the polynomial ring on all other variables. -/
+def isolateVariableEquiv (x : σ) :
+    MvPolynomial σ R ≃ₐ[R] Polynomial (MvPolynomial {y : σ // y ≠ x} R) :=
+  (MvPolynomial.renameEquiv R (Equiv.optionSubtypeNe x).symm).trans
+    (MvPolynomial.optionEquivLeft R {y : σ // y ≠ x})
+
+@[simp]
+theorem isolateVariableEquiv_X_self (x : σ) :
+    isolateVariableEquiv x (MvPolynomial.X x : MvPolynomial σ R) =
+      Polynomial.X := by
+  simp [isolateVariableEquiv, MvPolynomial.renameEquiv_apply]
+
+@[simp]
+theorem isolateVariableEquiv_X_ne {x y : σ} (h : y ≠ x) :
+    isolateVariableEquiv x (MvPolynomial.X y : MvPolynomial σ R) =
+      Polynomial.C (MvPolynomial.X ⟨y, h⟩) := by
+  simp [isolateVariableEquiv, MvPolynomial.renameEquiv_apply, h]
+
+/-- Under the univariate presentation, partial differentiation is ordinary
+polynomial differentiation. -/
+theorem isolateVariableEquiv_pderiv (x : σ) (Q : MvPolynomial σ R) :
+    isolateVariableEquiv x (MvPolynomial.pderiv x Q) =
+      Polynomial.derivative (isolateVariableEquiv x Q) := by
+  induction Q using MvPolynomial.induction_on with
+  | C a => simp [isolateVariableEquiv]
+  | add p q hp hq => simp [hp, hq]
+  | mul_X p y hp =>
+      rw [MvPolynomial.pderiv_mul]
+      simp only [map_add, map_mul, hp, Polynomial.derivative_mul]
+      by_cases h : y = x
+      · subst y
+        simp
+      · simp [h, isolateVariableEquiv_X_ne h]
+
+/-- The Hasse partial derivative in a single multivariate coordinate.  Unlike
+an iterated ordinary derivative, the top derivative cannot disappear in
+small characteristic. -/
+def partialHasse (x : σ) (m : ℕ) (Q : MvPolynomial σ R) :
+    MvPolynomial σ R :=
+  (isolateVariableEquiv x).symm
+    (Polynomial.hasseDeriv m (isolateVariableEquiv x Q))
+
+@[simp]
+theorem isolateVariableEquiv_partialHasse
+    (x : σ) (m : ℕ) (Q : MvPolynomial σ R) :
+    isolateVariableEquiv x (partialHasse x m Q) =
+      Polynomial.hasseDeriv m (isolateVariableEquiv x Q) := by
+  simp [partialHasse]
+
+@[simp]
+theorem partialHasse_zero (x : σ) (Q : MvPolynomial σ R) :
+    partialHasse x 0 Q = Q := by
+  apply (isolateVariableEquiv x).injective
+  simp
+
+/-- The separant of an order-`m` Hasse stratum is the next stratum, scaled
+by `m+1`. -/
+theorem pderiv_partialHasse (x : σ) (m : ℕ) (Q : MvPolynomial σ R) :
+    MvPolynomial.pderiv x (partialHasse x m Q) =
+      (m + 1) • partialHasse x (m + 1) Q := by
+  apply (isolateVariableEquiv x).injective
+  rw [isolateVariableEquiv_pderiv]
+  simp only [isolateVariableEquiv_partialHasse, map_nsmul]
+  have h := LinearMap.congr_fun
+    (Polynomial.hasseDeriv_comp
+      (R := MvPolynomial {y : σ // y ≠ x} R) 1 m)
+    (isolateVariableEquiv x Q)
+  simpa [Polynomial.hasseDeriv_one, Nat.choose_one_right, Nat.add_comm,
+    add_smul] using h
+
+/-- Taking an `m`-th Hasse partial derivative lowers the active coordinate
+degree by at least `m`. -/
+theorem partialHasse_degreeOf (x : σ) (m : ℕ) (Q : MvPolynomial σ R) :
+    (partialHasse x m Q).degreeOf x ≤ Q.degreeOf x - m := by
+  rw [MvPolynomial.degreeOf_eq_natDegree x,
+    MvPolynomial.degreeOf_eq_natDegree x]
+  change (isolateVariableEquiv x (partialHasse x m Q)).natDegree ≤
+    (isolateVariableEquiv x Q).natDegree - m
+  rw [isolateVariableEquiv_partialHasse]
+  exact Polynomial.natDegree_hasseDeriv_le _ _
+
+/-- The top Hasse partial derivative of a nonzero polynomial is nonzero. -/
+theorem partialHasse_top_ne_zero [NoZeroDivisors R] [Nontrivial R]
+    (x : σ) (Q : MvPolynomial σ R) (hQ : Q ≠ 0) :
+    partialHasse x (Q.degreeOf x) Q ≠ 0 := by
+  intro hz
+  have hz' := congrArg (isolateVariableEquiv x) hz
+  simp only [isolateVariableEquiv_partialHasse, map_zero] at hz'
+  rw [MvPolynomial.degreeOf_eq_natDegree x] at hz'
+  change Polynomial.hasseDeriv (isolateVariableEquiv x Q).natDegree
+    (isolateVariableEquiv x Q) = 0 at hz'
+  rw [Polynomial.hasseDeriv_natDegree_eq_C] at hz'
+  have hlead : (isolateVariableEquiv x Q).leadingCoeff ≠ 0 :=
+    Polynomial.leadingCoeff_ne_zero.mpr
+      ((isolateVariableEquiv x).injective.ne hQ)
+  apply hlead
+  apply Polynomial.C_injective
+  simpa using hz'
+
+/-- Before the characteristic, a nonzero next Hasse stratum gives a nonzero
+ordinary separant for the current stratum. -/
+theorem pderiv_partialHasse_ne_zero_of_next
+    {F : Type*} [Field F] {q m : ℕ} [CharP F q]
+    (hmq : m + 1 < q) (x : σ) (Q : MvPolynomial σ F)
+    (hnext : partialHasse x (m + 1) Q ≠ 0) :
+    MvPolynomial.pderiv x (partialHasse x m Q) ≠ 0 := by
+  rw [pderiv_partialHasse, nsmul_eq_mul]
+  apply mul_ne_zero
+  · change ((m + 1 : ℕ) : MvPolynomial σ F) ≠ 0
+    rw [show ((m + 1 : ℕ) : MvPolynomial σ F) =
+      MvPolynomial.C ((m + 1 : ℕ) : F) by simp]
+    exact MvPolynomial.C_ne_zero.mpr
+      ((CharP.cast_eq_zero_iff F q (m + 1)).not.mpr
+        (Nat.not_dvd_of_pos_of_lt (by omega) hmq))
+  · exact hnext
+
+/-- Explicit monomial formula for a Hasse partial derivative. -/
+theorem partialHasse_monomial
+    (x : σ) (m : ℕ) (u : σ →₀ ℕ) (a : R) :
+    partialHasse x m (MvPolynomial.monomial u a) =
+      MvPolynomial.monomial (u - Finsupp.single x m)
+        ((u x).choose m * a) := by
+  apply (isolateVariableEquiv x).injective
+  simp [partialHasse, isolateVariableEquiv,
+    MvPolynomial.renameEquiv_apply, MvPolynomial.rename_monomial,
+    MvPolynomial.optionEquivLeft_monomial, Polynomial.hasseDeriv_monomial]
+  have hexp :
+      (Finsupp.mapDomain (Equiv.optionSubtypeNe x).symm
+        (u - Finsupp.single x m)).some =
+      (Finsupp.mapDomain (Equiv.optionSubtypeNe x).symm u).some := by
+    ext y
+    rw [Finsupp.some_apply, Finsupp.some_apply,
+      Finsupp.mapDomain_equiv_apply, Finsupp.mapDomain_equiv_apply]
+    change u y - Finsupp.single x m y = u y
+    rw [Finsupp.single_eq_of_ne y.property]
+    simp
+  rw [hexp]
+  congr 1
+  change MvPolynomial.C ((u x).choose m : R) *
+      MvPolynomial.monomial _ a = _
+  rw [MvPolynomial.C_mul_monomial]
+
+theorem partialHasse_add (x : σ) (m : ℕ) (Q Q' : MvPolynomial σ R) :
+    partialHasse x m (Q + Q') = partialHasse x m Q + partialHasse x m Q' := by
+  apply (isolateVariableEquiv x).injective
+  simp
+
+theorem partialHasse_finset_sum
+    {ι : Type*} (x : σ) (m : ℕ) (s : Finset ι)
+    (f : ι → MvPolynomial σ R) :
+    partialHasse x m (∑ i ∈ s, f i) =
+      ∑ i ∈ s, partialHasse x m (f i) := by
+  classical
+  induction s using Finset.induction_on with
+  | empty => simp [partialHasse]
+  | @insert a s ha ih => simp [ha, ih, partialHasse_add]
+
+/-- Expansion of a Hasse partial derivative over the original support. -/
+theorem partialHasse_as_sum (x : σ) (m : ℕ) (Q : MvPolynomial σ R) :
+    partialHasse x m Q =
+      ∑ u ∈ Q.support, MvPolynomial.monomial
+        (u - Finsupp.single x m) ((u x).choose m * Q.coeff u) := by
+  conv_lhs => rw [MvPolynomial.as_sum Q]
+  rw [partialHasse_finset_sum]
+  apply Finset.sum_congr rfl
+  intro u _hu
+  exact partialHasse_monomial x m u (Q.coeff u)
+
+/-- Removing multiplicity from one coordinate cannot increase a nonnegative
+monomial weight. -/
+theorem finsupp_weight_tsub_single_le
+    (w : σ → ℕ) (u : σ →₀ ℕ) (x : σ) (m : ℕ) :
+    Finsupp.weight w (u - Finsupp.single x m) ≤ Finsupp.weight w u := by
+  rw [Finsupp.weight_apply, Finsupp.weight_apply]
+  apply Finsupp.sum_le_sum_index (tsub_le_self)
+  · intro i _hi a b hab
+    exact Nat.mul_le_mul_right (w i) hab
+  · intro _i _hi
+    simp
+
+/-- Hasse partial differentiation preserves the weighted-degree budget. -/
+theorem weightedTotalDegree_partialHasse_le
+    (w : σ → ℕ) (x : σ) (m : ℕ) (Q : MvPolynomial σ R) :
+    (partialHasse x m Q).weightedTotalDegree w ≤
+      Q.weightedTotalDegree w := by
+  classical
+  rw [partialHasse_as_sum]
+  rw [MvPolynomial.weightedTotalDegree, Finset.sup_le_iff]
+  intro v hv
+  have hv' := MvPolynomial.support_sum hv
+  obtain ⟨u, hu, hvmono⟩ := Finset.mem_biUnion.mp hv'
+  have hv_eq : v = u - Finsupp.single x m := by
+    by_cases hc : ((u x).choose m : R) * Q.coeff u = 0
+    · simp [hc] at hvmono
+    · simpa [MvPolynomial.support_monomial, hc] using hvmono
+  subst v
+  exact (finsupp_weight_tsub_single_le w u x m).trans
+    (MvPolynomial.le_weightedTotalDegree w hu)
+
+/-- Hasse partial differentiation cannot introduce a variable that was not
+already present. -/
+theorem partialHasse_vars_subset
+    (x : σ) (m : ℕ) (Q : MvPolynomial σ R) :
+    (partialHasse x m Q).vars ⊆ Q.vars := by
+  classical
+  intro y hy
+  rw [MvPolynomial.mem_vars_iff_degreeOf_ne_zero] at hy ⊢
+  intro hyzero
+  have hle := weightedTotalDegree_partialHasse_le
+    (Pi.single y 1) x m Q
+  rw [MvPolynomial.weightedTotalDegree_piSingle,
+    MvPolynomial.weightedTotalDegree_piSingle, hyzero] at hle
+  exact hy (Nat.eq_zero_of_le_zero hle)
+
+/-- A sequence starting at zero and ending nonzero has a first transition
+from a zero value to a nonzero value. -/
+theorem exists_zero_succ_ne_zero
+    {α : Type*} [Zero α] (f : ℕ → α) {d : ℕ}
+    (hzero : f 0 = 0) (htop : f d ≠ 0) :
+    ∃ m < d, f m = 0 ∧ f (m + 1) ≠ 0 := by
+  induction d with
+  | zero => exact (htop hzero).elim
+  | succ d ih =>
+      by_cases hd : f d = 0
+      · exact ⟨d, Nat.lt_succ_self d, hd, by simpa using htop⟩
+      · obtain ⟨m, hm, hm0, hm1⟩ := ih hd
+        exact ⟨m, hm.trans (Nat.lt_succ_self d), hm0, hm1⟩
+
+/-- If the next specialized Hasse stratum is nonzero, then the specialized
+ordinary separant of the current stratum is nonzero before the
+characteristic. -/
+theorem differentialSpecializationOver_pderiv_partialHasse_ne_zero
+    {F : Type*} [Field F] {r q m : ℕ} [CharP F q]
+    (hmq : m + 1 < q) (x : JetVariable r)
+    (Q : DifferentialPolynomialOver F r) (P : Polynomial F)
+    (hnext : differentialSpecializationOver
+      (partialHasse x (m + 1) Q) P ≠ 0) :
+    differentialSpecializationOver
+      (MvPolynomial.pderiv x (partialHasse x m Q)) P ≠ 0 := by
+  rw [pderiv_partialHasse]
+  change MvPolynomial.eval₂Hom Polynomial.C _ ((m + 1) •
+    partialHasse x (m + 1) Q) ≠ 0
+  rw [map_nsmul, nsmul_eq_mul]
+  apply mul_ne_zero
+  · change ((m + 1 : ℕ) : Polynomial F) ≠ 0
+    rw [show ((m + 1 : ℕ) : Polynomial F) =
+      Polynomial.C ((m + 1 : ℕ) : F) by simp]
+    exact Polynomial.C_ne_zero.mpr
+      ((CharP.cast_eq_zero_iff F q (m + 1)).not.mpr
+        (Nat.not_dvd_of_pos_of_lt (by omega) hmq))
+  · exact hnext
+
+/-- The top Hasse partial derivative eliminates its active variable. -/
+theorem partialHasse_top_notMem_vars
+    [NoZeroDivisors R] [Nontrivial R]
+    (x : σ) (Q : MvPolynomial σ R) :
+    x ∉ (partialHasse x (Q.degreeOf x) Q).vars := by
+  rw [MvPolynomial.mem_vars_iff_degreeOf_ne_zero, not_ne_iff]
+  exact Nat.eq_zero_of_le_zero
+    ((partialHasse_degreeOf x (Q.degreeOf x) Q).trans (by simp))
+
+end PartialHasse
+
+section DifferentialJet
+
+variable {F : Type*} [Field F]
+
+/-- Hasse differentiation commutes with translation. -/
+theorem hasseDerivative_taylor_comm
+    (j : ℕ) (a : F) (P : Polynomial F) :
+    hasseDerivative j (Polynomial.taylor a P) =
+      Polynomial.taylor a (hasseDerivative j P) := by
+  ext n
+  rw [Polynomial.hasseDeriv_coeff, Polynomial.taylor_coeff,
+    Polynomial.taylor_coeff]
+  have hcomp := LinearMap.congr_fun
+    (Polynomial.hasseDeriv_comp (R := F) n j) P
+  simp only [LinearMap.comp_apply] at hcomp
+  rw [hcomp, LinearMap.smul_apply, Polynomial.eval_smul, nsmul_eq_mul]
+  rw [Nat.choose_symm_add]
+
+/-- The differential jet of `P` at an arbitrary expansion point. -/
+def differentialJet {r : ℕ} (a : F) (P : Polynomial F) : JetVariable r → F
+  | none => a
+  | some i => (hasseDerivative (i : ℕ) P).eval a
+
+/-- Evaluating a differential specialization at `a` is the same as
+evaluating the original multivariate polynomial on the differential jet at
+`a`. -/
+theorem eval_differentialSpecializationOver {r : ℕ}
+    (Q : DifferentialPolynomialOver F r) (P : Polynomial F) (a : F) :
+    (differentialSpecializationOver Q P).eval a =
+      MvPolynomial.eval (differentialJet a P) Q := by
+  rw [differentialSpecializationOver]
+  change Polynomial.evalRingHom a
+    (MvPolynomial.eval₂Hom Polynomial.C
+      (fun v : JetVariable r => match v with
+        | none => Polynomial.X
+        | some i => hasseDerivative (i : ℕ) P) Q) = _
+  rw [MvPolynomial.map_eval₂Hom]
+  apply MvPolynomial.eval₂Hom_congr
+  · ext c
+    simp
+  · funext v
+    rcases v with (_ | i)
+    · simp [differentialJet]
+    · simp [differentialJet]
+  · rfl
+
+/-- Translate the independent variable of a differential equation by `a`,
+leaving all jet variables fixed. -/
+def translateDifferential {r : ℕ} (a : F)
+    (Q : DifferentialPolynomialOver F r) : DifferentialPolynomialOver F r :=
+  MvPolynomial.eval₂Hom MvPolynomial.C
+    (fun v : JetVariable r => match v with
+      | none => MvPolynomial.X none + MvPolynomial.C a
+      | some i => MvPolynomial.X (some i)) Q
+
+/-- Differential specialization commutes with simultaneous translation of
+the independent variable and candidate polynomial. -/
+theorem differentialSpecializationOver_translate {r : ℕ} (a : F)
+    (Q : DifferentialPolynomialOver F r) (P : Polynomial F) :
+    differentialSpecializationOver (translateDifferential a Q)
+        (Polynomial.taylor a P) =
+      Polynomial.taylor a (differentialSpecializationOver Q P) := by
+  let subst : JetVariable r → Polynomial F := fun v => match v with
+    | none => Polynomial.X
+    | some i => hasseDerivative (i : ℕ) P
+  let substTaylor : JetVariable r → Polynomial F := fun v => match v with
+    | none => Polynomial.X
+    | some i => hasseDerivative (i : ℕ) (Polynomial.taylor a P)
+  let shift : JetVariable r → DifferentialPolynomialOver F r := fun v =>
+    match v with
+    | none => MvPolynomial.X none + MvPolynomial.C a
+    | some i => MvPolynomial.X (some i)
+  let lhs : DifferentialPolynomialOver F r →+* Polynomial F :=
+    (MvPolynomial.eval₂Hom Polynomial.C substTaylor).comp
+      (MvPolynomial.eval₂Hom MvPolynomial.C shift)
+  let rhs : DifferentialPolynomialOver F r →+* Polynomial F :=
+    (Polynomial.taylorAlgHom a).toRingHom.comp
+      (MvPolynomial.eval₂Hom Polynomial.C subst)
+  change lhs Q = rhs Q
+  apply DFunLike.congr_fun
+    (MvPolynomial.ringHom_ext (f := lhs) (g := rhs) ?_ ?_) Q
+  · intro c
+    simp [lhs, rhs, subst, substTaylor, shift]
+  · intro v
+    rcases v with (_ | i)
+    · simp [lhs, rhs, subst, substTaylor, shift]
+    · simp [lhs, rhs, subst, substTaylor, shift,
+        hasseDerivative_taylor_comm]
+
+/-- Translation of the independent variable commutes with partial
+differentiation in every jet variable. -/
+theorem pderiv_translateDifferential_some {r : ℕ}
+    (a : F) (j : Fin (r + 1)) (Q : DifferentialPolynomialOver F r) :
+    MvPolynomial.pderiv (some j) (translateDifferential a Q) =
+      translateDifferential a (MvPolynomial.pderiv (some j) Q) := by
+  induction Q using MvPolynomial.induction_on with
+  | C c => simp [translateDifferential]
+  | add p q hp hq =>
+      rw [show translateDifferential a (p + q) =
+        translateDifferential a p + translateDifferential a q by
+          simp [translateDifferential]]
+      rw [map_add, hp, hq]
+      simp [translateDifferential]
+  | mul_X p v hp =>
+      rw [show translateDifferential a (p * MvPolynomial.X v) =
+        translateDifferential a p * translateDifferential a (MvPolynomial.X v) by
+          simp [translateDifferential]]
+      rw [MvPolynomial.pderiv_mul, hp, MvPolynomial.pderiv_mul]
+      rcases v with (_ | i)
+      · simp [translateDifferential]
+      · by_cases h : i = j
+        · subst i
+          simp [translateDifferential]
+        · simp [translateDifferential, h]
+
+end DifferentialJet
+
 section GapCalculus
 
 variable {R : Type*} [CommRing R]
@@ -455,8 +840,122 @@ def jetAtZero {j : ℕ} (P : Polynomial F) : JetVariable j → F
   | none => 0
   | some i => P.coeff (i : ℕ)
 
+/-- Evaluating a translated differential polynomial at the origin jet of a
+translated candidate recovers evaluation at the original differential jet. -/
+theorem eval_jetAtZero_translateDifferential {r : ℕ} (a : F)
+    (Q : DifferentialPolynomialOver F r) (P : Polynomial F) :
+    MvPolynomial.eval (jetAtZero (Polynomial.taylor a P))
+        (translateDifferential a Q) =
+      MvPolynomial.eval (differentialJet a P) Q := by
+  let shift : JetVariable r → DifferentialPolynomialOver F r := fun v =>
+    match v with
+    | none => MvPolynomial.X none + MvPolynomial.C a
+    | some i => MvPolynomial.X (some i)
+  let lhs : DifferentialPolynomialOver F r →+* F :=
+    (MvPolynomial.eval (jetAtZero (Polynomial.taylor a P))).comp
+      (MvPolynomial.eval₂Hom MvPolynomial.C shift)
+  let rhs : DifferentialPolynomialOver F r →+* F :=
+    MvPolynomial.eval (differentialJet a P)
+  change lhs Q = rhs Q
+  apply DFunLike.congr_fun
+    (MvPolynomial.ringHom_ext (f := lhs) (g := rhs) ?_ ?_) Q
+  · intro c
+    simp [lhs, rhs, shift]
+  · intro v
+    rcases v with (_ | i)
+    · simp [lhs, rhs, shift, jetAtZero, differentialJet]
+    · simp [lhs, rhs, shift, jetAtZero, differentialJet,
+        Polynomial.taylor_coeff]
+
 /-- The highest jet variable in an order-`j` equation. -/
 def lastJet (j : ℕ) : JetVariable j := some ⟨j, by omega⟩
+
+/-- The jet variable of order `j`, viewed in an ambient equation of order
+`r`.  Keeping the ambient type fixed is essential for iterating Hasse
+strata while the highest variable still present decreases. -/
+def jetAtOrder (r j : ℕ) (hjr : j ≤ r) : JetVariable r :=
+  some ⟨j, Nat.lt_succ_of_le hjr⟩
+
+/-- Every jet variable occurring in `Q` has index at most `j`.  The base
+variable `X` (represented by `none`) is intentionally unrestricted. -/
+def HasJetOrderAtMost {r : ℕ} (j : ℕ)
+    (Q : DifferentialPolynomialOver F r) : Prop :=
+  ∀ i : Fin (r + 1), some i ∈ Q.vars → (i : ℕ) ≤ j
+
+/-- The ambient order is always a valid support bound. -/
+theorem hasJetOrderAtMost_ambient {r : ℕ}
+    (Q : DifferentialPolynomialOver F r) : HasJetOrderAtMost r Q := by
+  intro i _hi
+  exact Nat.le_of_lt_succ i.isLt
+
+/-- Hasse partial differentiation preserves any active-order bound. -/
+theorem HasJetOrderAtMost.partialHasse {r j : ℕ}
+    {Q : DifferentialPolynomialOver F r} (h : HasJetOrderAtMost j Q)
+    (x : JetVariable r) (m : ℕ) :
+    HasJetOrderAtMost j (partialHasse x m Q) := by
+  intro i hi
+  exact h i (partialHasse_vars_subset x m Q hi)
+
+/-- Extracting the top Hasse coefficient in the active variable lowers a
+positive active-order bound by one. -/
+theorem HasJetOrderAtMost.top_succ {r j : ℕ} (hjr : j + 1 ≤ r)
+    {Q : DifferentialPolynomialOver F r}
+    (h : HasJetOrderAtMost (j + 1) Q) :
+    HasJetOrderAtMost j
+      (RSListDecoding.partialHasse (jetAtOrder r (j + 1) hjr)
+        (Q.degreeOf (jetAtOrder r (j + 1) hjr)) Q) := by
+  intro i hi
+  let x := jetAtOrder r (j + 1) hjr
+  have hiQ : some i ∈ Q.vars := partialHasse_vars_subset x (Q.degreeOf x) Q hi
+  have hi_le : (i : ℕ) ≤ j + 1 := h i hiQ
+  have hi_ne : (i : ℕ) ≠ j + 1 := by
+    intro hieq
+    have heq : (some i : JetVariable r) = x := by
+      simp [x, jetAtOrder, Fin.ext_iff, hieq]
+    apply partialHasse_top_notMem_vars x Q
+    simpa only [heq] using hi
+  omega
+
+/-- After extracting the top coefficient in order zero, no jet variable
+remains; the result is a polynomial in the independent variable alone. -/
+theorem HasJetOrderAtMost.top_zero_noJet {r : ℕ}
+    {Q : DifferentialPolynomialOver F r} (h : HasJetOrderAtMost 0 Q) :
+    ∀ i : Fin (r + 1), some i ∉
+      (RSListDecoding.partialHasse (jetAtOrder r 0 (Nat.zero_le r))
+        (Q.degreeOf (jetAtOrder r 0 (Nat.zero_le r))) Q).vars := by
+  intro i hi
+  let x := jetAtOrder r 0 (Nat.zero_le r)
+  have hiQ : some i ∈ Q.vars := partialHasse_vars_subset x (Q.degreeOf x) Q hi
+  have hi_zero : (i : ℕ) = 0 := Nat.eq_zero_of_le_zero (h i hiQ)
+  have heq : (some i : JetVariable r) = x := by
+    simp [x, jetAtOrder, Fin.ext_iff, hi_zero]
+  apply partialHasse_top_notMem_vars x Q
+  simpa only [heq] using hi
+
+/-- Translating the independent variable introduces no new jet variables. -/
+theorem HasJetOrderAtMost.translate {r j : ℕ} {a : F}
+    {Q : DifferentialPolynomialOver F r} (h : HasJetOrderAtMost j Q) :
+    HasJetOrderAtMost j (translateDifferential a Q) := by
+  classical
+  intro i hi
+  let shift : JetVariable r → DifferentialPolynomialOver F r := fun v =>
+    match v with
+    | none => MvPolynomial.X none + MvPolynomial.C a
+    | some k => MvPolynomial.X (some k)
+  have htranslate : translateDifferential a Q = MvPolynomial.bind₁ shift Q := by
+    change MvPolynomial.eval₂Hom MvPolynomial.C shift Q = _
+    exact DFunLike.congr_fun (MvPolynomial.eval₂Hom_C_eq_bind₁ shift) Q
+  have hi' : some i ∈ (MvPolynomial.bind₁ shift Q).vars := by
+    rwa [htranslate] at hi
+  obtain ⟨v, hvQ, hiv⟩ := MvPolynomial.mem_vars_bind₁ shift Q hi'
+  rcases v with (_ | k)
+  · have hmem := MvPolynomial.vars_add_subset
+        (MvPolynomial.X none : DifferentialPolynomialOver F r)
+        (MvPolynomial.C a) hiv
+    simp [shift] at hmem
+  · have hik : i = k := by simpa [shift] using hiv
+    subst k
+    exact h i hvQ
 
 /-- Agreement of polynomial coefficients below `k` gives the shifted
 agreement needed for the `i`-th Hasse derivatives. -/
@@ -602,6 +1101,197 @@ theorem regular_lift_unique
         (hdegP'.trans_lt (WithBot.coe_lt_coe.mpr hDk))
     rw [hPk, hP'k]
 
+/-- One regular lifting step inside a fixed ambient jet-variable type.  Only
+variables that actually occur in `Q` matter, so an equation whose active
+order has fallen to `j` forces the next coefficient exactly as an order-`j`
+equation does. -/
+theorem regular_lift_coefficient_eq_of_orderAtMost
+    {q D r j k : ℕ} [CharP F q]
+    (hq : q.Prime) (hjr : j ≤ r) (hjk : j < k) (hkD : k ≤ D)
+    (hDq : D < q) (Q : DifferentialPolynomialOver F r)
+    (horder : HasJetOrderAtMost j Q) (P P' : Polynomial F)
+    (hP : differentialSpecializationOver Q P = 0)
+    (hP' : differentialSpecializationOver Q P' = 0)
+    (hsep : MvPolynomial.eval (jetAtZero P')
+      (MvPolynomial.pderiv (jetAtOrder r j hjr) Q) ≠ 0)
+    (hagree : CoeffAgreeBelow k P P') :
+    P.coeff k = P'.coeff k := by
+  classical
+  let x : JetVariable r := jetAtOrder r j hjr
+  let g : JetVariable r → Polynomial F := fun v => match v with
+    | none => Polynomial.X
+    | some i => hasseDerivative (i : ℕ) P
+  let h : JetVariable r → Polynomial F := fun v => match v with
+    | none => Polynomial.X
+    | some i => hasseDerivative (i : ℕ) P'
+  let g' : JetVariable r → Polynomial F := fun v =>
+    if v ∈ Q.vars then g v else h v
+  have hxvars : x ∈ Q.vars := by
+    by_contra hx
+    have hzero := MvPolynomial.pderiv_eq_zero_of_notMem_vars hx
+    rw [hzero] at hsep
+    simp at hsep
+  have hg'eq : MvPolynomial.eval₂Hom Polynomial.C g' Q =
+      MvPolynomial.eval₂Hom Polynomial.C g Q := by
+    apply MvPolynomial.eval₂Hom_congr' rfl _ rfl
+    intro v hv _
+    simp [g', hv]
+  have hs : 0 < k - j := Nat.sub_pos_of_lt hjk
+  have hgh : ∀ v, VanishBelow (k - j) (g' v - h v) := by
+    intro v
+    by_cases hv : v ∈ Q.vars
+    · rcases v with (_ | i)
+      · simp [g', g, h, hv, VanishBelow]
+      · simp only [g', hv, if_pos, g, h]
+        exact vanishBelow_hasseDerivative_sub (horder i hv) hjk.le hagree
+    · simp [g', hv, VanishBelow]
+  have hsingle : ∀ v, v ≠ x → (g' v - h v).coeff (k - j) = 0 := by
+    intro v hvx
+    by_cases hv : v ∈ Q.vars
+    · rcases v with (_ | i)
+      · simp [g', g, h, hv]
+      · have hi_le : (i : ℕ) ≤ j := horder i hv
+        have hi_ne : (i : ℕ) ≠ j := by
+          intro hij
+          apply hvx
+          simp [x, jetAtOrder, Fin.ext_iff, hij]
+        have hi_lt : (i : ℕ) < j := lt_of_le_of_ne hi_le hi_ne
+        simp only [g', hv, if_pos, g, h]
+        exact coeff_hasseDerivative_sub_eq_zero_of_lt hi_lt hjk hagree
+    · simp [g', hv]
+  have hvariation := coeff_eval₂Hom_sub_of_single_vanishBelow
+    hs x Q g' h hgh hsingle
+  have hg_spec : MvPolynomial.eval₂Hom Polynomial.C g Q = 0 := by
+    change differentialSpecializationOver Q P = 0
+    exact hP
+  have hg'_spec : MvPolynomial.eval₂Hom Polynomial.C g' Q = 0 := by
+    rw [hg'eq, hg_spec]
+  have hh_spec : MvPolynomial.eval₂Hom Polynomial.C h Q = 0 := by
+    change differentialSpecializationOver Q P' = 0
+    exact hP'
+  rw [hg'_spec, hh_spec, sub_zero, Polynomial.coeff_zero] at hvariation
+  rw [coeff_zero_differentialSubstitution P'] at hvariation
+  have hfrontier :
+      (g' x - h x).coeff (k - j) =
+        (k.choose j : F) * (P.coeff k - P'.coeff k) := by
+    rw [show g' x = g x by simp [g', hxvars]]
+    simpa [g, h, x, jetAtOrder] using
+      (coeff_hasseDerivative_sub_at_frontier (F := F) hjk.le)
+  rw [hfrontier] at hvariation
+  have hchoose : (k.choose j : F) ≠ 0 :=
+    natCast_choose_ne_zero_of_lt_char hq hjk.le hkD hDq
+  have hproduct :
+      MvPolynomial.eval (jetAtZero P')
+          (MvPolynomial.pderiv x Q) *
+        ((k.choose j : F) * (P.coeff k - P'.coeff k)) = 0 :=
+    hvariation.symm
+  rcases mul_eq_zero.mp hproduct with hsep0 | htail
+  · exact (hsep hsep0).elim
+  · rcases mul_eq_zero.mp htail with hchoose0 | hcoeff
+    · exact (hchoose hchoose0).elim
+    · exact sub_eq_zero.mp hcoeff
+
+/-- A regular initial jet of active order `j` has at most one bounded-degree
+lift, even when the equation is kept in a larger ambient jet-variable type. -/
+theorem regular_lift_unique_of_orderAtMost
+    {q D r j : ℕ} [CharP F q]
+    (hq : q.Prime) (hjr : j ≤ r) (hjD : j ≤ D) (hDq : D < q)
+    (Q : DifferentialPolynomialOver F r) (horder : HasJetOrderAtMost j Q)
+    (P P' : Polynomial F) (hdegP : P.degree ≤ D)
+    (hdegP' : P'.degree ≤ D)
+    (hP : differentialSpecializationOver Q P = 0)
+    (hP' : differentialSpecializationOver Q P' = 0)
+    (hsep : MvPolynomial.eval (jetAtZero P')
+      (MvPolynomial.pderiv (jetAtOrder r j hjr) Q) ≠ 0)
+    (hinit : ∀ n, n ≤ j → P.coeff n = P'.coeff n) :
+    P = P' := by
+  apply Polynomial.ext
+  intro k
+  by_cases hkD : k ≤ D
+  · induction k using Nat.strong_induction_on with
+    | h k ih =>
+        by_cases hkj : k ≤ j
+        · exact hinit k hkj
+        · apply regular_lift_coefficient_eq_of_orderAtMost hq hjr
+            (lt_of_not_ge hkj) hkD hDq Q horder P P' hP hP' hsep
+          intro n hnk
+          exact ih n hnk (hnk.le.trans hkD)
+  · have hDk : D < k := lt_of_not_ge hkD
+    have hPk : P.coeff k = 0 :=
+      Polynomial.coeff_eq_zero_of_degree_lt
+        (hdegP.trans_lt (WithBot.coe_lt_coe.mpr hDk))
+    have hP'k : P'.coeff k = 0 :=
+      Polynomial.coeff_eq_zero_of_degree_lt
+        (hdegP'.trans_lt (WithBot.coe_lt_coe.mpr hDk))
+    rw [hPk, hP'k]
+
+/-- Arbitrary-point form of regular uniqueness in a fixed ambient
+jet-variable type. -/
+theorem regular_lift_unique_at_of_orderAtMost
+    {q D r j : ℕ} [CharP F q]
+    (hq : q.Prime) (hjr : j ≤ r) (hjD : j ≤ D) (hDq : D < q)
+    (a : F) (Q : DifferentialPolynomialOver F r)
+    (horder : HasJetOrderAtMost j Q) (P P' : Polynomial F)
+    (hdegP : P.degree ≤ D) (hdegP' : P'.degree ≤ D)
+    (hP : differentialSpecializationOver Q P = 0)
+    (hP' : differentialSpecializationOver Q P' = 0)
+    (hsep : MvPolynomial.eval (differentialJet a P')
+      (MvPolynomial.pderiv (jetAtOrder r j hjr) Q) ≠ 0)
+    (hinit : ∀ n, n ≤ j →
+      (hasseDerivative n P).eval a = (hasseDerivative n P').eval a) :
+    P = P' := by
+  apply Polynomial.taylor_injective a
+  apply regular_lift_unique_of_orderAtMost hq hjr hjD hDq
+      (translateDifferential a Q) horder.translate
+      (Polynomial.taylor a P) (Polynomial.taylor a P')
+  · simpa only [Polynomial.degree_taylor] using hdegP
+  · simpa only [Polynomial.degree_taylor] using hdegP'
+  · rw [differentialSpecializationOver_translate, hP]
+    simp
+  · rw [differentialSpecializationOver_translate, hP']
+    simp
+  · change MvPolynomial.eval (jetAtZero (Polynomial.taylor a P'))
+      (MvPolynomial.pderiv (some ⟨j, Nat.lt_succ_of_le hjr⟩)
+        (translateDifferential a Q)) ≠ 0
+    rw [pderiv_translateDifferential_some,
+      eval_jetAtZero_translateDifferential]
+    exact hsep
+  · intro n hn
+    simpa only [Polynomial.taylor_coeff] using hinit n hn
+
+/-- Arbitrary-point form of regular Hensel uniqueness.  Translation reduces
+it to `regular_lift_unique`; the initial data are the Hasse coefficients at
+the chosen expansion point. -/
+theorem regular_lift_unique_at
+    {q D j : ℕ} [CharP F q]
+    (hq : q.Prime) (hjD : j ≤ D) (hDq : D < q)
+    (a : F) (Q : DifferentialPolynomialOver F j) (P P' : Polynomial F)
+    (hdegP : P.degree ≤ D) (hdegP' : P'.degree ≤ D)
+    (hP : differentialSpecializationOver Q P = 0)
+    (hP' : differentialSpecializationOver Q P' = 0)
+    (hsep : MvPolynomial.eval (differentialJet a P')
+      (MvPolynomial.pderiv (lastJet j) Q) ≠ 0)
+    (hinit : ∀ n, n ≤ j →
+      (hasseDerivative n P).eval a = (hasseDerivative n P').eval a) :
+    P = P' := by
+  apply Polynomial.taylor_injective a
+  apply regular_lift_unique hq hjD hDq (translateDifferential a Q)
+      (Polynomial.taylor a P) (Polynomial.taylor a P')
+  · simpa only [Polynomial.degree_taylor] using hdegP
+  · simpa only [Polynomial.degree_taylor] using hdegP'
+  · rw [differentialSpecializationOver_translate, hP]
+    simp
+  · rw [differentialSpecializationOver_translate, hP']
+    simp
+  · change MvPolynomial.eval (jetAtZero (Polynomial.taylor a P'))
+      (MvPolynomial.pderiv (some ⟨j, by omega⟩)
+        (translateDifferential a Q)) ≠ 0
+    rw [pderiv_translateDifferential_some,
+      eval_jetAtZero_translateDifferential]
+    exact hsep
+  · intro n hn
+    simpa only [Polynomial.taylor_coeff] using hinit n hn
+
 end RegularLift
 
 section FibrePolynomial
@@ -681,12 +1371,96 @@ theorem exists_nonvanishing_specialization_point
     (natDegree_differentialSpecializationOver_le_weightedTotalDegree
       Q P hP).trans_lt hweight
 
+/-- If the top Hasse stratum in one coordinate has nonzero specialization,
+then a solution belongs to a regular lower stratum at some field point.  The
+stratum and point are obtained constructively from the finite derivative
+chain and the weighted-degree bound. -/
+theorem exists_regular_partialHasse_point
+    [Fintype F] {r D q : ℕ} [CharP F q]
+    (x : JetVariable r) (Q : DifferentialPolynomialOver F r)
+    (P : Polynomial F) (hP : P.natDegree ≤ D)
+    (hsolution : differentialSpecializationOver Q P = 0)
+    (htop : differentialSpecializationOver
+      (partialHasse x (Q.degreeOf x) Q) P ≠ 0)
+    (hcoord : Q.degreeOf x < q)
+    (hweight : Q.weightedTotalDegree (jetWeight (r := r) D) <
+      Fintype.card F) :
+    ∃ m < Q.degreeOf x,
+      differentialSpecializationOver (partialHasse x m Q) P = 0 ∧
+      ∃ a : F, MvPolynomial.eval (differentialJet a P)
+        (MvPolynomial.pderiv x (partialHasse x m Q)) ≠ 0 := by
+  obtain ⟨m, hm, hmzero, hmnext⟩ := exists_zero_succ_ne_zero
+    (fun n => differentialSpecializationOver (partialHasse x n Q) P)
+    (by simpa using hsolution) htop
+  refine ⟨m, hm, hmzero, ?_⟩
+  have hmchar : m + 1 < q := (Nat.succ_le_of_lt hm).trans_lt hcoord
+  obtain ⟨a, ha⟩ := exists_nonvanishing_specialization_point
+    (partialHasse x (m + 1) Q) P hP hmnext
+    ((weightedTotalDegree_partialHasse_le
+      (jetWeight (r := r) D) x (m + 1) Q).trans_lt hweight)
+  refine ⟨a, ?_⟩
+  rw [← eval_differentialSpecializationOver]
+  have hsep : differentialSpecializationOver
+      (MvPolynomial.pderiv x (partialHasse x m Q)) P =
+      (m + 1) • differentialSpecializationOver
+        (partialHasse x (m + 1) Q) P := by
+    rw [pderiv_partialHasse]
+    change MvPolynomial.eval₂Hom Polynomial.C _ ((m + 1) •
+      partialHasse x (m + 1) Q) = _
+    rw [map_nsmul]
+    rfl
+  rw [hsep]
+  change Polynomial.evalRingHom a ((m + 1) •
+    differentialSpecializationOver (partialHasse x (m + 1) Q) P) ≠ 0
+  rw [map_nsmul, nsmul_eq_mul]
+  apply mul_ne_zero
+  · exact (CharP.cast_eq_zero_iff F q (m + 1)).not.mpr
+      (Nat.not_dvd_of_pos_of_lt (by omega) hmchar)
+  · exact ha
+
 /-- View a multivariate polynomial as a univariate polynomial in `x`, after
 fixing every other variable. -/
 def fibrePolynomial (x : σ) (a : σ → F) (Q : MvPolynomial σ F) :
     Polynomial F :=
   MvPolynomial.eval₂Hom Polynomial.C
     (fun v => if v = x then Polynomial.X else Polynomial.C (a v)) Q
+
+/-- The fibre construction is scalar evaluation of the coefficient
+polynomials after isolating the active variable. -/
+theorem fibrePolynomial_eq_map_isolate (x : σ) (a : σ → F)
+    (Q : MvPolynomial σ F) :
+    fibrePolynomial x a Q =
+      (isolateVariableEquiv x Q).map
+        (MvPolynomial.eval fun y : {z : σ // z ≠ x} => a y.1) := by
+  let lhs : MvPolynomial σ F →+* Polynomial F :=
+    MvPolynomial.eval₂Hom Polynomial.C
+      (fun v => if v = x then Polynomial.X else Polynomial.C (a v))
+  let rhs : MvPolynomial σ F →+* Polynomial F :=
+    (Polynomial.mapRingHom
+      (MvPolynomial.eval fun y : {z : σ // z ≠ x} => a y.1)).comp
+        (isolateVariableEquiv x).toAlgHom.toRingHom
+  change lhs Q = rhs Q
+  apply DFunLike.congr_fun
+    (MvPolynomial.ringHom_ext (f := lhs) (g := rhs) ?_ ?_) Q
+  · intro c
+    simp [lhs, rhs, isolateVariableEquiv]
+  · intro y
+    by_cases hy : y = x
+    · subst y
+      simp [lhs, rhs]
+    · simp [lhs, rhs, hy, isolateVariableEquiv_X_ne]
+
+/-- Fibre formation commutes with Hasse differentiation in the active
+coordinate. -/
+theorem fibrePolynomial_partialHasse (x : σ) (a : σ → F)
+    (m : ℕ) (Q : MvPolynomial σ F) :
+    fibrePolynomial x a (partialHasse x m Q) =
+      hasseDerivative m (fibrePolynomial x a Q) := by
+  rw [fibrePolynomial_eq_map_isolate, fibrePolynomial_eq_map_isolate,
+    isolateVariableEquiv_partialHasse]
+  exact (hasseDerivative_map
+    (MvPolynomial.eval fun y : {z : σ // z ≠ x} => a y.1)
+    (isolateVariableEquiv x Q) m).symm
 
 /-- Evaluation of the fibre polynomial restores ordinary multivariate
 evaluation. -/

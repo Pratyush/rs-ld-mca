@@ -36,6 +36,24 @@ info: 'RSListDecoding.regular_lift_unique' depends on axioms: [propext, Classica
 #print axioms RSListDecoding.regular_lift_unique
 
 /--
+info: 'RSListDecoding.partialHasse_top_ne_zero' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms RSListDecoding.partialHasse_top_ne_zero
+
+/--
+info: 'RSListDecoding.exists_regular_partialHasse_point' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms RSListDecoding.exists_regular_partialHasse_point
+
+/--
+info: 'RSListDecoding.regular_lift_unique_at_of_orderAtMost' depends on axioms: [propext, Classical.choice, Quot.sound]
+-/
+#guard_msgs in
+#print axioms RSListDecoding.regular_lift_unique_at_of_orderAtMost
+
+/--
 info: 'RSListDecoding.card_regularSolutionsAtZero_fibre_le' depends on axioms: [propext, Classical.choice, Quot.sound]
 -/
 #guard_msgs in
